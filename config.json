@@ -1,0 +1,15 @@
+{
+    "openshfit":{
+        "endpoint":"vm-console.cloud.dc.nova",
+        "token":"eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJ2aWFtYWlzLXN5bmMiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlY3JldC5uYW1lIjoic3luY21vbml0b3JpbmctdG9rZW4tcjR4anciLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoic3luY21vbml0b3JpbmciLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJiMjkwYTY4Mi1mNDBlLTExZTktYjViZi1mYTE2M2UyOWIyNDgiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6dmlhbWFpcy1zeW5jOnN5bmNtb25pdG9yaW5nIn0.n7VuWIB4iggXgPddopw25rFRNsNxjcWdsxydIN64K2DsO5sYT4FbLKJK7u6BSVuWKiTVpLEzdrEqLVjGS1hOfHSLMpMNIyc1ewUAF0iEqbc0uMILWtMP-kspV4i35t8lzFUZKm2vQsZgHxQIF5M_gdiJPNY9yxP98Bv-v2nIZ3cAaaszELM1ESJFQbbaOIETsGzMYnM__mWAvcls26SVsotR2BZuusIeyDLeHPLtFednj_zSpzMdQUnu5J7dXujvrSCP-VdKj2qCUcDJX2wSwVyyDoe84uJfBSnEZsCwY5XUVBVq9Et6b8LXXKOUTqvTQXbHZv66toIpW23thcm4Ug"
+    },
+    "colectors":{
+        "vv-sincronizacao-estoque-produto-cd":{
+            "consolidarEstoqueProdutoConjunto":{
+                "METRICS: \"ProdutoPK \\[sku=[0-9]+, tipoProduto=[0-9]+\\]\"":{
+                    "salvarMongo":["avg","max","min"]
+                }
+            }
+        }
+    }
+}

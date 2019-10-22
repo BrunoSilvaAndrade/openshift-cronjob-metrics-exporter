@@ -1,6 +1,6 @@
 import json
 import logging
-from .exceptions import ConfigException
+from .exceptions import ConfigException,ConfigTimerException
 
 from os import path
 

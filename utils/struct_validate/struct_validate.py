@@ -21,15 +21,16 @@ def validateStruct(struct,config):
     raise StructValidateException()
 
 def validateStructColectors(colector):
+    mod_timers = ["times_write","times_read"]
     try:
         if not isinstance(colector["contexts"],list):
             raise StructColectorsException()
         for context in colector["contexts"]:
-            timers = context["timers"]
-            if not isinstance(timers,dict):
-                raise StructColectorsException()
-            for timer in timers:
-                if not isinstance(timers[timer],list):
+            for mod_timer in mod_timers:
+                if not (isinstance(context[mod_timer],dict)):
                     raise StructColectorsException()
+                for timer in context[mod_timer]:
+                    if not isinstance(context[mod_timer][timer],list):
+                        raise StructColectorsException()
     except KeyError:
         raise StructColectorsException()

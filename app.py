@@ -20,7 +20,8 @@ except ConfigException as e:
     exit(ExitCode.FAIL)
 
 try:
-    Colector(**config.colectors[0])
+    colector = Colector(**config.colectors[0],token=config.token,endpoint=config.endpoint)
+    colector.collect()
 except ColectorInitError as e:
     logging.warn(str(e))
 

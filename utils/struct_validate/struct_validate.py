@@ -3,13 +3,16 @@ from .exceptions import StructValidateException,StructColectorsException
 def validateStruct(struct,config):
     if isinstance(struct,dict):
         for k in struct:
-            if isinstance(struct[k],dict):
-                validateStruct(struct[k],config[k])
-                continue
-            elif isinstance(struct[k],list):
-                validateStruct(struct[k],config[k])
-                continue
-            config[k]
+            try:
+                if isinstance(struct[k],dict):
+                    validateStruct(struct[k],config[k])
+                    continue
+                elif isinstance(struct[k],list):
+                    validateStruct(struct[k],config[k])
+                    continue
+                config[k]
+            except KeyError:
+                raise StructValidateException()
         return
     elif isinstance(struct,list):
         if not isinstance(config,list):

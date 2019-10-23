@@ -22,9 +22,9 @@ class Config():
             validateStruct(self.CONFIG_SCHEMA,config)
             for colector in config["colectors"]:
                 validateStructColectors(colector)
-            self.token = config["openshift"]["token"]
-            self.endpoint = config["openshift"]["endpoint"]
-            self.colectors = config["colectors"]
+            self.__dict__["token"] = config["openshift"]["token"]
+            self.__dict__["endpoint"] = config["openshift"]["endpoint"]
+            self.__dict__["colectors"] = config["colectors"]
 
         except json.JSONDecodeError:
             logging.error("JSON INCORRECT SYNTAX IN CONFIG FILE")
@@ -39,3 +39,6 @@ class Config():
         except StructValidateException:
             logging.error(self.EXAMPLE_CONFIG_SCHEMA)
             raise ConfigException()
+
+    def __setattr__(self, name, value):
+        pass

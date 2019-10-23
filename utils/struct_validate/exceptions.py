@@ -1,7 +1,8 @@
-class ConfigException(Exception):
+class StructValidateException(Exception):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-class ConfigStructColectorsException(ConfigException):
+
+class StructColectorsException(StructValidateException):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

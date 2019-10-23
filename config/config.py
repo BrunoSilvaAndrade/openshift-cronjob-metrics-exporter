@@ -1,5 +1,4 @@
 import json
-import logging
 
 from .exceptions import ConfigException,ConfigStructColectorsException
 from os import path
@@ -27,18 +26,13 @@ class Config():
             self.__dict__["colectors"] = config["colectors"]
 
         except json.JSONDecodeError:
-            logging.error("JSON INCORRECT SYNTAX IN CONFIG FILE")
-            logging.error(self.EXAMPLE_CONFIG_SCHEMA)
-            raise ConfigException()
+            raise ConfigException("%s\n%s"%("JSON INCORRECT SYNTAX IN CONFIG FILE",self.EXAMPLE_CONFIG_SCHEMA))
         except KeyError:
-            logging.error(self.EXAMPLE_CONFIG_SCHEMA)
-            raise ConfigException()
+            raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA)
         except IndexError:
-            logging.error(self.EXAMPLE_CONFIG_SCHEMA)
-            raise ConfigException()
+            raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA)
         except StructValidateException:
-            logging.error(self.EXAMPLE_CONFIG_SCHEMA)
-            raise ConfigException()
+            raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA)
 
     def __setattr__(self, name, value):
         pass

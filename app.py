@@ -9,13 +9,20 @@ from requests.utils import default_headers
 from utils import _ExitCode
 from os import path
 from config import Config,ConfigException
+from colector import Colector,ColectorInitError
 
 ExitCode = _ExitCode()
 
 try:
     config = Config()
-except ConfigException:
+except ConfigException as e:
+    logging.error(str(e))
     exit(ExitCode.FAIL)
+
+try:
+    Colector(**config.colectors[0])
+except ColectorInitError as e:
+    logging.warn(str(e))
 
 """urllib3.disable_warnings()
 

@@ -1,6 +1,9 @@
 import json
 import logging
-from .exceptions import ConfigException,ConfigTimerException
+try:
+    from .exceptions import ConfigException,ConfigTimerException
+except ImportError:
+    from exceptions import ConfigException,ConfigTimerException
 
 from os import path
 
@@ -44,13 +47,17 @@ class Config():
             for k in struct:
                 if isinstance(struct[k],dict):
                     self.validateStructConfig(struct[k],config[k])
+                    continue
                 elif isinstance(struct[k],list):
                     self.validateStructConfig(struct[k],config[k])
+                    continue
                 config[k]
         elif isinstance(struct,list):
-            for i in range(0,len(struct)):
+            if not isinstance(config,list):
+                raise ConfigException()
+            for i in range(0,len(config)):
                 if isinstance(struct[0],dict): 
-                    self.validateStructConfig(struct[i],config[i])
+                    self.validateStructConfig(struct[0],config[i])
 
     def validateStructConfigTimers(self,config):
         for colector in config["colectors"]:

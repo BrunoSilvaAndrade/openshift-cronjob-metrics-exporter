@@ -2,6 +2,7 @@ import logging
 import json
 import requests as req
 import urllib3
+import re
 
 from utils.struct_validate import *
 from threading import Thread
@@ -13,6 +14,8 @@ class Colector(object):
     API_PREFIX_GET_PODS = "api/v1/namespaces/viamais-sync/pods"
     API_POSTFIX_GET_LOGS = "%s/log?tailLines=0&follow=true"
     HEADERS={"Accept": "application/json","Authorization":"Bearer %s"}
+    REGEX_TEMPLATE_CAPT_METRCIS = "^.*%s METRICS: %s:"
+
     metrics = {"max":{},"avg":{},"min":{}}
 
     def __init__(self,*args,**kwargs):
@@ -25,20 +28,20 @@ class Colector(object):
         except KeyError:
             raise ColectorInitError("ERROR INIT COLECTOR, token or endpoint is invalid!")
 
-        self.__dict__["context"] = kwargs
-        self.HEADERS["Authorization"] = self.HEADERS["Authorization"]%(self.context["token"])
+        self.__dict__["config"] = kwargs
+        self.HEADERS["Authorization"] = self.HEADERS["Authorization"]%(self.config["token"])
         
         urllib3.disable_warnings()
 
     def collect(self,**kwargs):
         context = kwargs
         try:
-            pods = req.get("https://%s/%s"%(self.context["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
+            pods = req.get("https://%s/%s"%(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
             pods = json.loads(pods.content)
             validateStruct(self.TEMPLATE_VALIDATION_RESPONSE,pods)
             for pod in pods["items"]:
                 try:
-                    if pod["metadata"]["labels"]["parent"] == context["name"] and pod["status"]["phase"] == "Running":
+                    if pod["metadata"]["labels"]["parent"] == self.config["name"] and pod["status"]["phase"] == "Running":
                         break
                     pod = None
                     continue
@@ -46,8 +49,22 @@ class Colector(object):
                     pod = None
                     continue
             if pod is None:
-                logging.info("NO POD FROM CRONJOB <%s> Running"%(context["name"]))
-        
+                logging.warn("NO POD FROM CRONJOB <%s> Running"%(self.config["name"]))
+                return
+            
+            logs = req.get(
+                            "https://%s/%s/%s"%(
+                                self.config["endpoint"],
+                                self.API_PREFIX_GET_PODS,
+                                self.API_POSTFIX_GET_LOGS%(pod["metadata"]["name"]))
+                            ,headers=self.HEADERS,verify=False,stream=True)
+            regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS%(context["name"],context["regex_sub"])
+            for line in logs.iter_lines():
+                line = line.decode('utf-8')
+                if re.search(regex_sub,str(line)) is not None:
+                    line = re.sub(regex_sub,"",str(line))
+                    print(json.loads(line))
+                    continue
         except req.RequestException:
             raise ColectorGetPodsError()
         except json.JSONDecodeError:

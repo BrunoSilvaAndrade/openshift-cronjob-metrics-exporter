@@ -27,10 +27,6 @@ class Config():
 
         except json.JSONDecodeError:
             raise ConfigException("%s\n%s"%("JSON INCORRECT SYNTAX IN CONFIG FILE",self.EXAMPLE_CONFIG_SCHEMA))
-        except KeyError:
-            raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA)
-        except IndexError:
-            raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA)
         except StructValidateException:
             raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA)
 

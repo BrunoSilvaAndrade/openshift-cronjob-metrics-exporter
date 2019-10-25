@@ -7,10 +7,11 @@ import re
 from utils.struct_validate import *
 from threading import Thread
 from .exceptions import *
+from time import sleep
 
 class Colector(object):
     TEMPLATE_VALIDATION_RESPONSE={"items":[{"metadata":{},"spec":{},"status":{}}]}
-    TIME_BETWEEN_ITERS = 60
+    TIME_BETWEEN_ITERS = 10
     API_PREFIX_GET_PODS = "api/v1/namespaces/viamais-sync/pods"
     API_POSTFIX_GET_LOGS = "%s/log?tailLines=0&follow=true"
     HEADERS={"Accept": "application/json","Authorization":"Bearer %s"}
@@ -82,21 +83,31 @@ class Colector(object):
                 logging.warn("NO POD FROM CRONJOB <%s> Running"%(self.config["name"]))
                 return
             
-            logs = req.get(
-                            "https://%s/%s/%s"%(
-                                self.config["endpoint"],
-                                self.API_PREFIX_GET_PODS,
-                                self.API_POSTFIX_GET_LOGS%(pod["metadata"]["name"]))
-                            ,headers=self.HEADERS,verify=False,stream=True)
+            while True:
+                logs = req.get(
+                                "https://%s/%s/%s"%(
+                                    self.config["endpoint"],
+                                    self.API_PREFIX_GET_PODS,
+                                    self.API_POSTFIX_GET_LOGS%(pod["metadata"]["name"]))
+                                ,headers=self.HEADERS,verify=False,stream=True)
 
-            regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS%(context["name"],context["regex_sub"])
-            for line in logs.iter_lines():
-                line = line.decode('utf-8')
-                if re.search(regex_sub,str(line)) is not None:
-                    line = re.sub(regex_sub,"",str(line))
-                    line = json.loads(line)
-                    self.consolidTimeRead(context,line)
-                    self.consolidTimeWrite(context,line)
+                regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS%(context["name"],context["regex_sub"])
+                for line in logs.iter_lines():
+                    try:
+                        line = line.decode('utf-8')
+                        if re.search(regex_sub,str(line)) is not None:
+                            line = re.sub(regex_sub,"",str(line))
+                            line = json.loads(line)
+                            validateStruct({"times_write":{},"times_read":{}},line)
+                            self.consolidTimeRead(context,line)
+                            self.consolidTimeWrite(context,line)
+                            print(self.metrics)
+                    except json.JSONDecodeError:
+                        continue
+                    except StructValidateException:
+                        continue
+                
+                sleep(self.TIME_BETWEEN_ITERS)
                     
 
         except req.RequestException:

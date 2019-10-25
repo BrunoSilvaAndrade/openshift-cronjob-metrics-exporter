@@ -13,12 +13,10 @@ class Colector(object):
     TEMPLATE_VALIDATION_RESPONSE={"items":[{"metadata":{},"spec":{},"status":{}}]}
     TIME_BETWEEN_ITERS = 10
     API_PREFIX_GET_PODS = "api/v1/namespaces/viamais-sync/pods"
-    API_POSTFIX_GET_LOGS = "%s/log?tailLines=0&follow=true"
-    HEADERS={"Accept": "application/json","Authorization":"Bearer %s"}
-    REGEX_TEMPLATE_CAPT_METRCIS = "^.*%s METRICS: %s:"
+    API_POSTFIX_GET_LOGS = "{}/log?tailLines=0&follow=true"
+    HEADERS={"Accept": "application/json","Authorization":"Bearer {}"}
+    REGEX_TEMPLATE_CAPT_METRCIS = "^.*{} METRICS: {}:"
     METRIC_TYPES = ["avg","max","min"]
-
-    metrics = {"times_write":{},"times_read":{}}
 
     def __init__(self,*args,**kwargs):
         try:
@@ -26,14 +24,16 @@ class Colector(object):
             if not(isinstance(kwargs["token"],str) == isinstance(kwargs["endpoint"],str)):
                 raise ColectorInitError("ERROR INIT COLECTOR, token or endpoint is invalid!")
         except StructColectorsException:
-            raise ColectorInitError("ERROR INIT COLECTOR, WRONG DICT ARGS: %s"%(json.dumps(kwargs)))
+            raise ColectorInitError("ERROR INIT COLECTOR, WRONG DICT ARGS: {}".format(json.dumps(kwargs)))
         except KeyError:
             raise ColectorInitError("ERROR INIT COLECTOR, token or endpoint is invalid!")
 
         self.__dict__["config"] = kwargs
-        self.HEADERS["Authorization"] = self.HEADERS["Authorization"]%(self.config["token"])
+        self.HEADERS["Authorization"] = self.HEADERS["Authorization"].format(self.config["token"])
         
         urllib3.disable_warnings()
+
+        self.__dict__["metrics"] = {"times_write":{},"times_read":{}}
 
     def consolidate(self,index,context,line):
         for id_regex in context:
@@ -67,7 +67,7 @@ class Colector(object):
     def collect(self,**kwargs):
         context = kwargs
         try:
-            pods = req.get("https://%s/%s"%(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
+            pods = req.get("https://{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
             pods = json.loads(pods.content)
             validateStruct(self.TEMPLATE_VALIDATION_RESPONSE,pods)
             for pod in pods["items"]:
@@ -80,18 +80,18 @@ class Colector(object):
                     pod = None
                     continue
             if pod is None:
-                logging.warn("NO POD FROM CRONJOB <%s> Running"%(self.config["name"]))
+                logging.warn("NO POD FROM CRONJOB >{}< Running".format(self.config["name"]))
                 return
             
             while True:
                 logs = req.get(
-                                "https://%s/%s/%s"%(
+                                "https://{}/{}/{}".format(
                                     self.config["endpoint"],
                                     self.API_PREFIX_GET_PODS,
-                                    self.API_POSTFIX_GET_LOGS%(pod["metadata"]["name"]))
+                                    self.API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"]))
                                 ,headers=self.HEADERS,verify=False,stream=True)
 
-                regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS%(context["name"],context["regex_sub"])
+                regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS.format(context["name"],context["regex_sub"])
                 for line in logs.iter_lines():
                     try:
                         line = line.decode('utf-8')
@@ -101,7 +101,6 @@ class Colector(object):
                             validateStruct({"times_write":{},"times_read":{}},line)
                             self.consolidTimeRead(context,line)
                             self.consolidTimeWrite(context,line)
-                            print(self.metrics)
                     except json.JSONDecodeError:
                         continue
                     except StructValidateException:
@@ -117,6 +116,12 @@ class Colector(object):
         except StructValidateException:
             raise ColectorGetPodsError()
                         
+
+    def start_collecotrs(self):
+        threads = []
+        for index in range(0,len(self.config["contexts"])):
+            threads.append(Thread(target=self.collect,kwargs=self.config["contexts"][index]))
+            threads[index].start()
 
     def __setattr__(self, name, value):
         pass

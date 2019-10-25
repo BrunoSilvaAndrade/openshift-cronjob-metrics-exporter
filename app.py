@@ -1,12 +1,9 @@
-import json
-import requests
 import logging
 import urllib3
 
+from threading import Thread
 
-from requests.utils import default_headers
 from utils import _ExitCode
-from os import path
 from config import Config,ConfigException
 from colector import Colector,ColectorInitError
 
@@ -19,7 +16,11 @@ except ConfigException as e:
     exit(ExitCode.FAIL)
 
 try:
-    colector = Colector(**config.colectors[0],token=config.token,endpoint=config.endpoint)
-    colector.collect(**colector.config["contexts"][0])
+    colectors = config.colectors
+    threads = []
+    for index in range(0,len(colectors)):
+        colector = Colector(**{**colectors[index],"token":config.token,"endpoint":config.endpoint})
+        threads.append(Thread(target=colector.start_collecotrs))
+        threads[index].start()
 except ColectorInitError as e:
     logging.warn(str(e))

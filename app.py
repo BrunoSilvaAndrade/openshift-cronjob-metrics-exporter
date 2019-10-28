@@ -20,7 +20,7 @@ try:
     threads = []
     for index in range(0,len(colectors)):
         colector = Colector(**{**colectors[index],"token":config.token,"endpoint":config.endpoint})
-        threads.append(Thread(target=colector.start_collecotrs))
+        threads.append(Thread(target=colector.collect))
         threads[index].start()
 except ColectorInitError as e:
     logging.warn(str(e))

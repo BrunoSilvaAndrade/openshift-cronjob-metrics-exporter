@@ -64,64 +64,64 @@ class Colector(object):
         self.consolidate(index,context[index],line[index])
 
 
-    def collect(self,**kwargs):
-        context = kwargs
-        try:
-            pods = req.get("https://{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
-            pods = json.loads(pods.content)
-            validateStruct(self.TEMPLATE_VALIDATION_RESPONSE,pods)
-            for pod in pods["items"]:
-                try:
-                    if pod["metadata"]["labels"]["parent"] == self.config["name"] and pod["status"]["phase"] == "Running":
-                        break
-                    pod = None
-                    continue
-                except KeyError:
-                    pod = None
-                    continue
-            if pod is None:
-                logging.warn("NO POD FROM CRONJOB >{}< Running".format(self.config["name"]))
-                return
-            
-            while True:
+    def collect(self):
+        threads = []
+        while True:
+            sleep(self.TIME_BETWEEN_ITERS)
+            try:
+                pods = req.get("https://{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
+                pods = json.loads(pods.content)
+                validateStruct(self.TEMPLATE_VALIDATION_RESPONSE,pods)
+                for pod in pods["items"]:
+                    try:
+                        if pod["metadata"]["labels"]["parent"] == self.config["name"] and pod["status"]["phase"] == "Running":
+                            break
+                        pod = None
+                        continue
+                    except KeyError:
+                        pod = None
+                        continue
+                if pod is None:
+                    logging.warn("NO POD FROM CRONJOB >{}< Running".format(self.config["name"]))
+                    return
                 logs = req.get(
                                 "https://{}/{}/{}".format(
                                     self.config["endpoint"],
                                     self.API_PREFIX_GET_PODS,
-                                    self.API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"]))
-                                ,headers=self.HEADERS,verify=False,stream=True)
+                                    self.API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"])),
+                                    headers=self.HEADERS,verify=False,stream=True)
 
-                regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS.format(context["name"],context["regex_sub"])
                 for line in logs.iter_lines():
-                    try:
                         line = line.decode('utf-8')
-                        if re.search(regex_sub,str(line)) is not None:
-                            line = re.sub(regex_sub,"",str(line))
-                            line = json.loads(line)
-                            validateStruct({"times_write":{},"times_read":{}},line)
-                            self.consolidTimeRead(context,line)
-                            self.consolidTimeWrite(context,line)
-                    except json.JSONDecodeError:
-                        continue
-                    except StructValidateException:
-                        continue
-                
-                sleep(self.TIME_BETWEEN_ITERS)
-                    
+                        for index in range(0,len(self.config["contexts"])):
+                            try:
+                                regex_sub = sleep.REGEX_TEMPLATE_CAPT_METRCIS.format(self.config["contexts"][index]["name"],self.config["contexts"][index]["regex_sub"])
+                                if re.search(regex_sub,str(line)) is not None:
+                                    line = re.sub(regex_sub,"",str(line))
+                                    line = json.loads(line)
+                                    validateStruct({"times_write":{},"times_read":{}},line)
+                                    threads.append([
+                                            Thread(target=self.consolidTimeRead,args=[self.config["contexts"][index],line]),
+                                            Thread(target=self.consolidTimeWrite,args=[self.config["contexts"][index],line])
+                                    ])
+                                    threads[0].start()
+                                    threads[1].start()
 
-        except req.RequestException:
-            raise ColectorGetPodsError()
-        except json.JSONDecodeError:
-            raise ColectorGetPodsError()
-        except StructValidateException:
-            raise ColectorGetPodsError()
-                        
-
-    def start_collecotrs(self):
-        threads = []
-        for index in range(0,len(self.config["contexts"])):
-            threads.append(Thread(target=self.collect,kwargs=self.config["contexts"][index]))
-            threads[index].start()
+                            except json.JSONDecodeError:
+                                continue
+                            except StructValidateException:
+                                continue
+                        while (not not len(threads)):
+                            for index in range(0,len(threads)):
+                                if not threads[index][0].is_alive() and not threads[index][1].is_alive():
+                                    threads.pop(index)
+                        print(self.metrics)
+            except req.RequestException:
+                continue
+            except json.JSONDecodeError:
+                continue
+            except StructValidateException:
+                continue
 
     def __setattr__(self, name, value):
         pass

@@ -67,7 +67,6 @@ class Colector(object):
     def collect(self):
         threads = []
         while True:
-            sleep(self.TIME_BETWEEN_ITERS)
             try:
                 pods = req.get("https://{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
                 pods = json.loads(pods.content)
@@ -82,8 +81,8 @@ class Colector(object):
                         pod = None
                         continue
                 if pod is None:
-                    logging.warn("NO POD FROM CRONJOB >{}< Running".format(self.config["name"]))
-                    return
+                    logging.warn("NO POD FROM CRONJOB {} Running".format(self.config["name"]))
+                    raise StructValidateException()
                 logs = req.get(
                                 "https://{}/{}/{}".format(
                                     self.config["endpoint"],
@@ -95,7 +94,7 @@ class Colector(object):
                         line = line.decode('utf-8')
                         for index in range(0,len(self.config["contexts"])):
                             try:
-                                regex_sub = sleep.REGEX_TEMPLATE_CAPT_METRCIS.format(self.config["contexts"][index]["name"],self.config["contexts"][index]["regex_sub"])
+                                regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS.format(self.config["contexts"][index]["name"],self.config["contexts"][index]["regex_sub"])
                                 if re.search(regex_sub,str(line)) is not None:
                                     line = re.sub(regex_sub,"",str(line))
                                     line = json.loads(line)
@@ -104,8 +103,8 @@ class Colector(object):
                                             Thread(target=self.consolidTimeRead,args=[self.config["contexts"][index],line]),
                                             Thread(target=self.consolidTimeWrite,args=[self.config["contexts"][index],line])
                                     ])
-                                    threads[0].start()
-                                    threads[1].start()
+                                    threads[index][0].start()
+                                    threads[index][1].start()
 
                             except json.JSONDecodeError:
                                 continue
@@ -117,11 +116,12 @@ class Colector(object):
                                     threads.pop(index)
                         print(self.metrics)
             except req.RequestException:
-                continue
+                pass
             except json.JSONDecodeError:
-                continue
+                pass
             except StructValidateException:
-                continue
+                pass
+            sleep(self.TIME_BETWEEN_ITERS)
 
     def __setattr__(self, name, value):
         pass

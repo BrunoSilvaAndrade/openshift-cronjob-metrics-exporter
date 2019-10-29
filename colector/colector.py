@@ -115,6 +115,7 @@ class Colector(object):
                         print(self.metrics)
             except (req.RequestException,json.JSONDecodeError,StructValidateException):
                 pass
+            self.metrics = {"times_write":{},"times_read":{}}
             sleep(self.TIME_BETWEEN_ITERS)
 
     def __setattr__(self, name, value):

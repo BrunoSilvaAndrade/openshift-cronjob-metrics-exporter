@@ -68,7 +68,7 @@ class Colector(object):
         threads = []
         while True:
             try:
-                pods = req.get("https://{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
+                pods = req.get("{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
                 pods = json.loads(pods.content)
                 validateStruct(self.TEMPLATE_VALIDATION_RESPONSE,pods)
                 for pod in pods["items"]:
@@ -84,7 +84,7 @@ class Colector(object):
                     logging.warn("NO POD FROM CRONJOB {} Running".format(self.config["name"]))
                     raise StructValidateException()
                 logs = req.get(
-                                "https://{}/{}/{}".format(
+                                "{}/{}/{}".format(
                                     self.config["endpoint"],
                                     self.API_PREFIX_GET_PODS,
                                     self.API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"])),
@@ -106,20 +106,14 @@ class Colector(object):
                                     threads[index][0].start()
                                     threads[index][1].start()
 
-                            except json.JSONDecodeError:
-                                continue
-                            except StructValidateException:
+                            except (json.JSONDecodeError,StructValidateException):
                                 continue
                         while (not not len(threads)):
                             for index in range(0,len(threads)):
                                 if not threads[index][0].is_alive() and not threads[index][1].is_alive():
                                     threads.pop(index)
                         print(self.metrics)
-            except req.RequestException:
-                pass
-            except json.JSONDecodeError:
-                pass
-            except StructValidateException:
+            except (req.RequestException,json.JSONDecodeError,StructValidateException):
                 pass
             sleep(self.TIME_BETWEEN_ITERS)
 

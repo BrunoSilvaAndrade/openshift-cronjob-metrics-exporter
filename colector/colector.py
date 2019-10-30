@@ -17,6 +17,7 @@ class Colector(object):
     HEADERS={"Accept": "application/json","Authorization":"Bearer {}"}
     REGEX_TEMPLATE_CAPT_METRCIS = "^.*{} METRICS: {}:"
     METRIC_TYPES = ["avg","max","min"]
+    TEMPLATE_METRIC_KEY = "{}_({})_{}={}"
 
     def __init__(self,*args,**kwargs):
         try:
@@ -43,7 +44,7 @@ class Colector(object):
                     for time_type in self.METRIC_TYPES:
                         if time_type in context[id_regex]:
                             if id_regex not in self.metrics[index]:
-                                self.metrics[index][id_regex] = {"avg":{"sum":0,"count":0},"min":None,"max":0}
+                                self.metrics[index][id_regex] = {"avg":{"sum":1,"count":1},"min":None,"max":0}
                             if time_type == "avg":
                                 if value > 0:
                                     self.metrics[index][id_regex]["avg"]["sum"] += value
@@ -112,11 +113,18 @@ class Colector(object):
                             for index in range(0,len(threads)):
                                 if not threads[index][0].is_alive() and not threads[index][1].is_alive():
                                     threads.pop(index)
-                        print(self.metrics)
             except (req.RequestException,json.JSONDecodeError,StructValidateException):
                 pass
             self.metrics = {"times_write":{},"times_read":{}}
             sleep(self.TIME_BETWEEN_ITERS)
+
+    def zabbixSender(self):
+        for timer_type in self.metrics:
+            for capture in self.metrics[timer_type]:
+                print("{}\n{}\n{}".format(
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,"AVG",capture,int(round(self.metrics[timer_type][capture]["avg"]["sum"]/self.metrics[timer_type][capture]["avg"]["count"]))),
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,"MAX",capture,self.metrics[timer_type][capture]["max"]),
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,"MIN",capture,self.metrics[timer_type][capture]["min"])))
 
     def __setattr__(self, name, value):
         pass

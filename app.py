@@ -6,9 +6,11 @@ from threading import Thread
 from utils import _ExitCode
 from config import Config,ConfigException
 from colector import Colector,ColectorInitError
+from flask import Flask,abort
 from time import sleep
 
 ExitCode = _ExitCode()
+app  = Flask(__name__)
 
 try:
     config = Config()
@@ -28,7 +30,11 @@ for index in range(0,len(colectors)):
         colectors.pop(index)
         logging.warn(str(e))
 
-while True:
+@app.route("/<sync_name>/METRICS")
+def get_metrics(sync_name):
     for colector in colectors:
-        colector.zabbixSender()
-    sleep(1)
+        if colector.config["name"] == sync_name:
+            return colector.getMetrics()
+    abort(404)
+
+app.run()

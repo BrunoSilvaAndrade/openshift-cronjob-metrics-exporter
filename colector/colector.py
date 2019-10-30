@@ -11,13 +11,14 @@ from time import sleep
 
 class Colector(object):
     TEMPLATE_VALIDATION_RESPONSE={"items":[{"metadata":{},"spec":{},"status":{}}]}
+    CONTJOB_TEMPLATE = "cronjob-{}"
     TIME_BETWEEN_ITERS = 10
     API_PREFIX_GET_PODS = "api/v1/namespaces/viamais-sync/pods"
     API_POSTFIX_GET_LOGS = "{}/log?tailLines=0&follow=true"
     HEADERS={"Accept": "application/json","Authorization":"Bearer {}"}
     REGEX_TEMPLATE_CAPT_METRCIS = "^.*{} METRICS: {}:"
     METRIC_TYPES = ["avg","max","min"]
-    TEMPLATE_METRIC_KEY = "{}_({})_{}={}"
+    TEMPLATE_METRIC_KEY = "{}_{}_{} {}"
 
     def __init__(self,*args,**kwargs):
         try:
@@ -74,7 +75,7 @@ class Colector(object):
                 validateStruct(self.TEMPLATE_VALIDATION_RESPONSE,pods)
                 for pod in pods["items"]:
                     try:
-                        if pod["metadata"]["labels"]["parent"] == self.config["name"] and pod["status"]["phase"] == "Running":
+                        if pod["metadata"]["labels"]["parent"] == self.CONTJOB_TEMPLATE.format(self.config["name"]) and pod["status"]["phase"] == "Running":
                             break
                         pod = None
                         continue
@@ -118,13 +119,15 @@ class Colector(object):
             self.metrics = {"times_write":{},"times_read":{}}
             sleep(self.TIME_BETWEEN_ITERS)
 
-    def zabbixSender(self):
+    def getMetrics(self):
+        ret  = ""
         for timer_type in self.metrics:
             for capture in self.metrics[timer_type]:
-                print("{}\n{}\n{}".format(
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,"AVG",capture,int(round(self.metrics[timer_type][capture]["avg"]["sum"]/self.metrics[timer_type][capture]["avg"]["count"]))),
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,"MAX",capture,self.metrics[timer_type][capture]["max"]),
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,"MIN",capture,self.metrics[timer_type][capture]["min"])))
+                ret += "{}\n{}\n{}\n".format(
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture,"avg",int(round(self.metrics[timer_type][capture]["avg"]["sum"]/self.metrics[timer_type][capture]["avg"]["count"]))),
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture,"max",self.metrics[timer_type][capture]["max"]),
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture,"min",self.metrics[timer_type][capture]["min"]))
+        return ret
 
     def __setattr__(self, name, value):
         pass

@@ -38,4 +38,4 @@ def get_metrics(sync_name):
             return colector.getMetrics()
     abort(HTTPStatus.NOT_FOUND)
 
-app.run()
+app.run(host='0.0.0.0')

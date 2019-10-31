@@ -12,7 +12,7 @@ from time import sleep
 class Colector(object):
     TEMPLATE_VALIDATION_RESPONSE={"items":[{"metadata":{},"spec":{},"status":{}}]}
     CONTJOB_TEMPLATE = "cronjob-{}"
-    TIME_BETWEEN_ITERS = 10
+    TIME_BETWEEN_ITERS = 5
     API_PREFIX_GET_PODS = "api/v1/namespaces/viamais-sync/pods"
     API_POSTFIX_GET_LOGS = "{}/log?tailLines=0&follow=true"
     HEADERS={"Accept": "application/json","Authorization":"Bearer {}"}
@@ -67,7 +67,7 @@ class Colector(object):
 
 
     def collect(self):
-        threads = []
+        threads = {}
         while True:
             try:
                 pods = req.get("{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
@@ -93,30 +93,31 @@ class Colector(object):
                                     headers=self.HEADERS,verify=False,stream=True)
 
                 for line in logs.iter_lines():
-                        line = line.decode('utf-8')
-                        for index in range(0,len(self.config["contexts"])):
-                            try:
-                                regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS.format(self.config["contexts"][index]["name"],self.config["contexts"][index]["regex_sub"])
-                                if re.search(regex_sub,str(line)) is not None:
-                                    line = re.sub(regex_sub,"",str(line))
-                                    line = json.loads(line)
-                                    validateStruct({"times_write":{},"times_read":{}},line)
-                                    threads.append([
-                                            Thread(target=self.consolidTimeRead,args=[self.config["contexts"][index],line]),
-                                            Thread(target=self.consolidTimeWrite,args=[self.config["contexts"][index],line])
-                                    ])
-                                    threads[index][0].start()
-                                    threads[index][1].start()
+                    line = line.decode('utf-8')
+                    for index in range(0,len(self.config["contexts"])):
+                        try:
+                            regex_sub = self.REGEX_TEMPLATE_CAPT_METRCIS.format(self.config["contexts"][index]["name"],self.config["contexts"][index]["regex_sub"])
+                            if re.search(regex_sub,str(line)) is not None:
+                                line = re.sub(regex_sub,"",str(line))
+                                line = json.loads(line)
+                                validateStruct({"times_write":{},"times_read":{}},line)
+                                threads[index] = [
+                                    Thread(target=self.consolidTimeRead,args=[self.config["contexts"][index],line]),
+                                    Thread(target=self.consolidTimeWrite,args=[self.config["contexts"][index],line])
+                                ]
+                                
+                                threads[index][0].start()
+                                threads[index][1].start()
 
-                            except (json.JSONDecodeError,StructValidateException):
-                                continue
-                        while (not not len(threads)):
-                            for index in range(0,len(threads)):
-                                if not threads[index][0].is_alive() and not threads[index][1].is_alive():
-                                    threads.pop(index)
+                        except (json.JSONDecodeError,StructValidateException):
+                            continue
+                    while (not not len(threads)):
+                        for index in list(threads):
+                            if not threads[index][0].is_alive() and not threads[index][1].is_alive():
+                                threads.pop(index)
             except (req.RequestException,json.JSONDecodeError,StructValidateException):
                 pass
-            self.metrics = {"times_write":{},"times_read":{}}
+            self.__dict__["metrics"] = {"times_write":{},"times_read":{}}
             sleep(self.TIME_BETWEEN_ITERS)
 
     def getMetrics(self):

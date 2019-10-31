@@ -9,6 +9,7 @@ from colector import Colector,ColectorInitError
 from flask import Flask,abort
 from http import HTTPStatus
 
+logging.basicConfig(format='%(asctime)s - SYNC EXPORTER - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
 ExitCode = _ExitCode()
 app  = Flask(__name__)
 

@@ -117,7 +117,11 @@ class Colector(object):
                                 threads.pop(index)
             except (req.RequestException,json.JSONDecodeError,StructValidateException):
                 pass
-            self.__dict__["metrics"] = {"times_write":{},"times_read":{}}
+            for timer_type in self.metrics:
+                for capture in self.metrics[timer_type]:
+                    self.metrics[timer_type][capture]["avg"]["sum"] = 1
+                    self.metrics[timer_type][capture]["avg"]["count"] = 1
+            
             sleep(self.TIME_BETWEEN_ITERS)
 
     def getMetrics(self):

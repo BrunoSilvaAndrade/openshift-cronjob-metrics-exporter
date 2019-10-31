@@ -7,7 +7,7 @@ from utils import _ExitCode
 from config import Config,ConfigException
 from colector import Colector,ColectorInitError
 from flask import Flask,abort
-from time import sleep
+from http import HTTPStatus
 
 ExitCode = _ExitCode()
 app  = Flask(__name__)
@@ -35,6 +35,6 @@ def get_metrics(sync_name):
     for colector in colectors:
         if colector.config["name"] == sync_name:
             return colector.getMetrics()
-    abort(404)
+    abort(HTTPStatus.NOT_FOUND)
 
 app.run()

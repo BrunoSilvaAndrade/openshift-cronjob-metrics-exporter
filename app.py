@@ -9,7 +9,8 @@ from flask import Flask,abort
 from http import HTTPStatus
 
 urllib3.disable_warnings()
-logging.basicConfig(format='%(asctime)s - SYNC EXPORTER - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
+logging.getLogger(__name__)
+logging.basicConfig(format='[%(asctime)s][%(levelname)s][%(filename)s] * %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=20)
 ExitCode = _ExitCode()
 app  = Flask(__name__)
 

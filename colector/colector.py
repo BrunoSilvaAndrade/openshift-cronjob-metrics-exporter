@@ -23,6 +23,7 @@ class Colector(object):
         self.__dict__["config"] = kwargs
         self.HEADERS["Authorization"] = self.HEADERS["Authorization"].format(self.config["token"])
         self.__dict__["metrics"] = {"times_write":{},"times_read":{}}
+        logging.getLogger(__name__)
 
     def consolidate(self,index,context,line):
         for id_regex in context:
@@ -70,15 +71,17 @@ class Colector(object):
                         pod = None
                         continue
                 if pod is None:
-                    logging.warn("NO POD FROM CRONJOB {} Running".format(self.config["name"]))
-                    raise StructValidateException()
+                    logging.info("WAITING FOR POD FROM CRONJOB {}".format(self.config["name"]))
+                    raise ForceSleep()
+
+                logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
                 logs = req.get(
                                 "{}/{}/{}".format(
                                     self.config["endpoint"],
                                     self.API_PREFIX_GET_PODS,
                                     self.API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"])),
                                     headers=self.HEADERS,verify=False,stream=True)
-
+                logging.info("RECEIVING LOG LINES FROM POD FROM CRONJOB {}".format(self.config["name"]))
                 for line in logs.iter_lines():
                     line = line.decode('utf-8')
                     for index in range(0,len(self.config["contexts"])):
@@ -102,7 +105,7 @@ class Colector(object):
                         for index in list(threads):
                             if not threads[index][0].is_alive() and not threads[index][1].is_alive():
                                 threads.pop(index)
-            except (req.RequestException,json.JSONDecodeError,StructValidateException):
+            except (req.RequestException,json.JSONDecodeError,StructValidateException,ForceSleep):
                 pass
             for timer_type in self.metrics:
                 for capture in self.metrics[timer_type]:
@@ -123,3 +126,7 @@ class Colector(object):
 
     def __setattr__(self, name, value):
         pass
+
+class ForceSleep(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

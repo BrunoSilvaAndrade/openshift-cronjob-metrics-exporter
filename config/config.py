@@ -7,8 +7,8 @@ from utils.struct_validate import validateStruct,validateStructColectors,StructV
 class Config():
     CUR_DIR = path.dirname(path.realpath(__file__))
     DEFAULT_CONFIG_FILE = "{}/{}".format(CUR_DIR,"config.json")
-    CONFIG_SCHEMA = {"openshift":{"endpoint":"str","token":"str"},"colectors":[{"name":"str","contexts":[{"name":"str","regex_sub":"str","times_write":{},"times_read":{}}]}]}
-    EXAMPLE_CONFIG_SCHEMA = "CONFIG EXAMPLE SHCHEMA\n{}".format(json.dumps(CONFIG_SCHEMA,indent=4))
+    CONFIG_SCHEMA = {"openshift":{"endpoint":str,"token":str},"colectors":[{"name":str,"contexts":[{"name":str,"regex_sub":str,"times_write":{},"times_read":{}}]}]}
+    EXAMPLE_CONFIG_SCHEMA = "FOLLOW CONFIG EXAMPLE SHCHEMA\n{}"
     
     def __init__(self):
 
@@ -26,9 +26,9 @@ class Config():
             self.__dict__["colectors"] = config["colectors"]
 
         except json.JSONDecodeError:
-            raise ConfigException("{}\n{}".format("JSON INCORRECT SYNTAX IN CONFIG FILE",self.EXAMPLE_CONFIG_SCHEMA))
-        except StructValidateException:
-            raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA)
+            raise ConfigException("{}".format("JSON INCORRECT SYNTAX IN CONFIG FILE"))
+        except StructValidateException as e:
+            raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA.format(str(e)))
 
     def __setattr__(self, name, value):
         pass

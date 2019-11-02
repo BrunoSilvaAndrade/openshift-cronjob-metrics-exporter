@@ -9,7 +9,6 @@ from .exceptions import *
 from time import sleep
 
 class Colector(object):
-    TEMPLATE_VALIDATION_RESPONSE={"items":[{"metadata":{},"spec":{},"status":{}}]}
     CONTJOB_TEMPLATE = "cronjob-{}"
     TIME_BETWEEN_ITERS = 5
     API_PREFIX_GET_PODS = "api/v1/namespaces/viamais-sync/pods"
@@ -21,12 +20,8 @@ class Colector(object):
 
     def __init__(self,*args,**kwargs):
         try:
-            validateStructColectors(kwargs)
-            if not(isinstance(kwargs["token"],str) == isinstance(kwargs["endpoint"],str)):
-                raise ColectorInitError("ERROR INIT COLECTOR, token or endpoint is invalid!")
-        except StructColectorsException:
-            raise ColectorInitError("ERROR INIT COLECTOR, WRONG DICT ARGS: {}".format(json.dumps(kwargs)))
-        except KeyError:
+            validateStruct({"token":str,"endpoint":str},kwargs)
+        except StructValidateException as e:
             raise ColectorInitError("ERROR INIT COLECTOR, token or endpoint is invalid!")
 
         self.__dict__["config"] = kwargs
@@ -68,7 +63,7 @@ class Colector(object):
             try:
                 pods = req.get("{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
                 pods = json.loads(pods.content)
-                validateStruct(self.TEMPLATE_VALIDATION_RESPONSE,pods)
+                validateStruct({"items":[{"metadata":{},"spec":{},"status":{}}]},pods)
                 for pod in pods["items"]:
                     try:
                         if pod["metadata"]["labels"]["parent"] == self.CONTJOB_TEMPLATE.format(self.config["name"]) and pod["status"]["phase"] == "Running":

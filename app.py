@@ -22,12 +22,15 @@ except ConfigException as e:
 
 colectors = config.colectors
 threads = []
+idx_decrmnt = 0
 for index in range(0,len(colectors)):
     try:
+        index = index-idx_decrmnt
         colectors[index] = Colector(**{**colectors[index],"token":config.token,"endpoint":config.endpoint})
         threads.append(Thread(target=colectors[index].collect))
         threads[index].start()
     except ColectorInitError as e:
+        idx_decrmnt += 1
         colectors.pop(index)
         logging.warn(str(e))
 

@@ -1,4 +1,5 @@
 import logging
+import urllib3
 
 from threading import Thread
 from utils import _ExitCode
@@ -7,6 +8,7 @@ from colector import Colector,ColectorInitError
 from flask import Flask,abort
 from http import HTTPStatus
 
+urllib3.disable_warnings()
 logging.basicConfig(format='%(asctime)s - SYNC EXPORTER - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
 ExitCode = _ExitCode()
 app  = Flask(__name__)

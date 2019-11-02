@@ -1,7 +1,6 @@
 import logging
 import json
 import requests as req
-import urllib3
 import re
 
 from utils.struct_validate import *
@@ -32,9 +31,6 @@ class Colector(object):
 
         self.__dict__["config"] = kwargs
         self.HEADERS["Authorization"] = self.HEADERS["Authorization"].format(self.config["token"])
-        
-        urllib3.disable_warnings()
-
         self.__dict__["metrics"] = {"times_write":{},"times_read":{}}
 
     def consolidate(self,index,context,line):

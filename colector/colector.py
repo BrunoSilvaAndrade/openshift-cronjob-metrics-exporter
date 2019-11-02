@@ -19,10 +19,6 @@ class Colector(object):
     TEMPLATE_METRIC_KEY = "{}_{}_{} {}"
 
     def __init__(self,*args,**kwargs):
-        try:
-            validateStruct({"token":str,"endpoint":str},kwargs)
-        except StructValidateException as e:
-            raise ColectorInitError("ERROR INIT COLECTOR, token or endpoint is invalid!")
 
         self.__dict__["config"] = kwargs
         self.HEADERS["Authorization"] = self.HEADERS["Authorization"].format(self.config["token"])

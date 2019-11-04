@@ -118,10 +118,11 @@ class Colector(object):
         ret  = ""
         for timer_type in self.metrics:
             for capture in self.metrics[timer_type]:
+                capture_key = capture.replace(".","_")
                 ret += "{}\n{}\n{}\n".format(
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture,"avg",int(round(self.metrics[timer_type][capture]["avg"]["sum"]/self.metrics[timer_type][capture]["avg"]["count"]))),
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture,"max",self.metrics[timer_type][capture]["max"]),
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture,"min",self.metrics[timer_type][capture]["min"]))
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture_key,"avg",int(round(self.metrics[timer_type][capture]["avg"]["sum"]/self.metrics[timer_type][capture]["avg"]["count"]))),
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture_key,"max",self.metrics[timer_type][capture]["max"]),
+                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture_key,"min",self.metrics[timer_type][capture]["min"]))
         return ret
 
     def __setattr__(self, name, value):

@@ -6,6 +6,7 @@ idna==2.8
 itsdangerous==1.1.0
 Jinja2==2.10.3
 MarkupSafe==1.1.1
+pyprometheus==0.0.9
 requests==2.22.0
 urllib3==1.25.6
 Werkzeug==0.16.0

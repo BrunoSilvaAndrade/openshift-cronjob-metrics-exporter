@@ -8,6 +8,11 @@ from threading import Thread
 from .exceptions import *
 from time import sleep
 
+from pyprometheus.registry import BaseRegistry
+from pyprometheus import LocalMemoryStorage
+from pyprometheus.utils.exposition import registry_to_text
+from pyprometheus import Gauge
+
 class Colector(object):
     CONTJOB_TEMPLATE = "cronjob-{}"
     TIME_BETWEEN_ITERS = 5
@@ -15,7 +20,7 @@ class Colector(object):
     API_POSTFIX_GET_LOGS = "{}/log?tailLines=0&follow=true"
     HEADERS={"Accept": "application/json","Authorization":"Bearer {}"}
     REGEX_TEMPLATE_CAPT_METRCIS = "^.*{} METRICS: {}:"
-    METRIC_TYPES = ["avg","max","min"]
+    METRIC_TYPES = ["cur","max","min"]
     TEMPLATE_METRIC_KEY = "{}_{}_{} {}"
 
     def __init__(self,*args,**kwargs):
@@ -23,6 +28,7 @@ class Colector(object):
         self.__dict__["config"] = kwargs
         self.HEADERS["Authorization"] = self.HEADERS["Authorization"].format(self.config["token"])
         self.__dict__["metrics"] = {"times_write":{},"times_read":{}}
+        self.__dict__["registry"] = BaseRegistry(storage=LocalMemoryStorage())
         logging.getLogger(__name__)
 
     def consolidate(self,index,context,line):
@@ -32,18 +38,23 @@ class Colector(object):
                 if re.search(id_regex,id_timer) is not None:
                     for time_type in self.METRIC_TYPES:
                         if time_type in context[id_regex]:
+                            str_regex = id_regex.replace(".","_")
                             if id_regex not in self.metrics[index]:
-                                self.metrics[index][id_regex] = {"avg":{"sum":1,"count":1},"min":None,"max":0}
-                            if time_type == "avg":
-                                if value > 0:
-                                    self.metrics[index][id_regex]["avg"]["sum"] += value
-                                    self.metrics[index][id_regex]["avg"]["count"] += 1
+                                self.metrics[index][id_regex] = {
+                                                        "cur":Gauge("cur_{}_{}".format(index,str_regex),"current metrics from {}".format(str_regex),registry=self.registry),
+                                                        "min":[Gauge("min_{}_{}".format(index,str_regex),"minimal metrics from {}".format(str_regex),registry=self.registry),None],
+                                                        "max":[Gauge("max_{}_{}".format(index,str_regex),"maximun metrics from {}".format(str_regex),registry=self.registry),0]
+                                                    }
+                            if time_type == "cur":
+                                self.metrics[index][id_regex]["cur"].set(value)
                             if time_type == "max":
-                                if self.metrics[index][id_regex]["max"] < value:
-                                    self.metrics[index][id_regex]["max"] = value
+                                if self.metrics[index][id_regex]["max"][1] < value:
+                                    self.metrics[index][id_regex]["max"][1] = value
+                                    self.metrics[index][id_regex]["max"][0].set(value)
                             if time_type == "min":
-                                if self.metrics[index][id_regex]["min"] is None or self.metrics[index][id_regex]["min"] > value:
-                                    self.metrics[index][id_regex]["min"] = value
+                                if self.metrics[index][id_regex]["min"][1] is None or self.metrics[index][id_regex]["min"][1] > value:
+                                    self.metrics[index][id_regex]["min"][1] = value
+                                    self.metrics[index][id_regex]["min"][0].set(value)
 
     def consolidTimeWrite(self,context,line):
         index = "times_write"
@@ -109,21 +120,12 @@ class Colector(object):
                 pass
             for timer_type in self.metrics:
                 for capture in self.metrics[timer_type]:
-                    self.metrics[timer_type][capture]["avg"]["sum"] = 1
-                    self.metrics[timer_type][capture]["avg"]["count"] = 1
+                    self.metrics[timer_type][capture]["cur"].set(0)
             
             sleep(self.TIME_BETWEEN_ITERS)
 
     def getMetrics(self):
-        ret  = ""
-        for timer_type in self.metrics:
-            for capture in self.metrics[timer_type]:
-                capture_key = capture.replace(".","_")
-                ret += "{}\n{}\n{}\n".format(
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture_key,"avg",int(round(self.metrics[timer_type][capture]["avg"]["sum"]/self.metrics[timer_type][capture]["avg"]["count"]))),
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture_key,"max",self.metrics[timer_type][capture]["max"]),
-                    self.TEMPLATE_METRIC_KEY.format(timer_type,capture_key,"min",self.metrics[timer_type][capture]["min"]))
-        return ret
+        return registry_to_text(self.registry)
 
     def __setattr__(self, name, value):
         pass

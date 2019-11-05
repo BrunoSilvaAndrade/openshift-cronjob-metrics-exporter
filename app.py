@@ -5,7 +5,7 @@ from threading import Thread
 from utils import _ExitCode
 from config import Config,ConfigException
 from colector import Colector,ColectorInitError
-from flask import Flask,abort
+from flask import Flask,Response,abort
 from http import HTTPStatus
 
 urllib3.disable_warnings()
@@ -32,7 +32,9 @@ for index in range(0,len(colectors)):
 def get_metrics(sync_name):
     for colector in colectors:
         if colector.config["name"] == sync_name:
-            return colector.getMetrics()
+            resp = Response(headers={"Content-Type":"text/plain; version=0.0.4"})
+            resp.data = colector.getMetrics()
+            return resp
     abort(HTTPStatus.NOT_FOUND)
 
 app.run(host='0.0.0.0')

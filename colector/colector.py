@@ -56,15 +56,6 @@ class Colector(object):
                                     self.metrics[index][id_regex]["min"][1] = value
                                     self.metrics[index][id_regex]["min"][0].set(value)
 
-    def consolidTimeWrite(self,context,line):
-        index = "times_write"
-        self.consolidate(index,context[index],line[index])
-
-    def consolidTimeRead(self,context,line):
-        index = "times_read"
-        self.consolidate(index,context[index],line[index])
-
-
     def collect(self):
         threads = {}
         while True:
@@ -129,6 +120,14 @@ class Colector(object):
 
     def __setattr__(self, name, value):
         pass
+
+    def consolidTimeWrite(self,context,line):
+        index = "times_write"
+        self.consolidate(index,context[index],line[index])
+
+    def consolidTimeRead(self,context,line):
+        index = "times_read"
+        self.consolidate(index,context[index],line[index])
 
 class ForceSleep(Exception):
     def __init__(self, *args, **kwargs):

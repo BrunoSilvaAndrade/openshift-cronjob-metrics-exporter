@@ -107,7 +107,7 @@ class Colector(object):
                         for index in list(threads):
                             if not threads[index][0].is_alive() and not threads[index][1].is_alive():
                                 threads.pop(index)
-            except (req.RequestException,json.JSONDecodeError,StructValidateException,ForceSleep):
+            except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError):
                 pass
             for timer_type in self.metrics:
                 for capture in self.metrics[timer_type]:

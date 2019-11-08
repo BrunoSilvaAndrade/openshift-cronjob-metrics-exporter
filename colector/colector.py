@@ -74,7 +74,7 @@ class Colector(object):
                         continue
                 if pod is None:
                     logging.info("WAITING FOR POD FROM CRONJOB {}".format(self.config["name"]))
-                    raise ForceSleep()
+                    raise NoPodsFounError()
 
                 logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
                 logs = req.get(
@@ -129,6 +129,6 @@ class Colector(object):
         index = "times_read"
         self.consolidate(index,context[index],line[index])
 
-class ForceSleep(Exception):
+class NoPodsFounError(Exception):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

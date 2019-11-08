@@ -7,7 +7,7 @@ from utils.struct_validate import validateStruct,validateStructColectors,StructV
 class Config():
     CUR_DIR = path.dirname(path.realpath(__file__))
     DEFAULT_CONFIG_FILE = "{}/{}".format(CUR_DIR,"config.json")
-    CONFIG_SCHEMA = {"openshift":{"endpoint":str,"token":str},"colectors":[{"name":str,"maxTimePerRecordSeconds":int,"contexts":[{"name":str,"regex_sub":str,"times_write":{},"times_read":{}}]}]}
+    CONFIG_SCHEMA = {"openshift":{"endpoint":str,"token":str},"colectors":[{"name":str,"maxSecondsPerRecord":int,"contexts":[{"name":str,"regex_sub":str,"times_write":{},"times_read":{}}]}]}
     EXAMPLE_CONFIG_SCHEMA = "FOLLOW CONFIG EXAMPLE SHCHEMA\n{}"
     
     def __init__(self):

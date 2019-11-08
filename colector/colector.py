@@ -118,6 +118,8 @@ class Colector(object):
 
             for timer_type in self.metrics:
                 for capture in self.metrics[timer_type]:
+                    self.metrics[timer_type][capture]["max"][0].set(0)
+                    self.metrics[timer_type][capture]["min"][0].set(0)
                     self.metrics[timer_type][capture]["cur"].set(0)
             
             sleep(self.TIME_BETWEEN_ITERS)

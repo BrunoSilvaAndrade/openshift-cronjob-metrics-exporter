@@ -29,6 +29,7 @@ class Colector(object):
         self.HEADERS["Authorization"] = self.HEADERS["Authorization"].format(self.config["token"])
         self.__dict__["metrics"] = {"times_write":{},"times_read":{}}
         self.__dict__["registry"] = BaseRegistry(storage=LocalMemoryStorage())
+        self.__dict__["status"] = Gauge("sync_is_running","Sync (running/not running) status.If 0 not running, if 1 running",registry=self.registry)
         logging.getLogger(__name__)
 
     def consolidate(self,index,context,line):
@@ -68,22 +69,25 @@ class Colector(object):
                         if pod["metadata"]["labels"]["parent"] == self.CONTJOB_TEMPLATE.format(self.config["name"]) and pod["status"]["phase"] == "Running":
                             break
                         pod = None
-                        continue
                     except KeyError:
                         pod = None
-                        continue
                 if pod is None:
                     logging.info("WAITING FOR POD FROM CRONJOB {}".format(self.config["name"]))
                     raise NoPodsFounError()
 
                 logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
+
                 logs = req.get(
                                 "{}/{}/{}".format(
                                     self.config["endpoint"],
                                     self.API_PREFIX_GET_PODS,
                                     self.API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"])),
                                     headers=self.HEADERS,verify=False,stream=True)
+
                 logging.info("RECEIVING LOG LINES FROM POD FROM CRONJOB {}".format(self.config["name"]))
+
+                self.status.set(1)
+
                 for line in logs.iter_lines():
                     line = line.decode('utf-8')
                     for index in range(0,len(self.config["contexts"])):
@@ -109,6 +113,9 @@ class Colector(object):
                                 threads.pop(index)
             except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError):
                 pass
+
+            self.status.set(0)
+
             for timer_type in self.metrics:
                 for capture in self.metrics[timer_type]:
                     self.metrics[timer_type][capture]["cur"].set(0)

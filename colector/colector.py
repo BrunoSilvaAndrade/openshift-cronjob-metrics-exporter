@@ -68,6 +68,7 @@ class Colector(object):
                                 self.metrics[index][id_regex]["min"][0].set(value)
 
     def collect(self):
+        Thread(target=self.monitorSyncLock).start()
         threads = {}
         while True:
             try:
@@ -133,12 +134,6 @@ class Colector(object):
             
             sleep(self.TIME_BETWEEN_ITERS)
 
-    def getMetrics(self):
-        return registry_to_text(self.registry)
-
-    def __setattr__(self, name, value):
-        pass
-
     def consolidTimeWrite(self,context,line):
         index = "times_write"
         self.consolidate(index,context[index],line[index])
@@ -156,8 +151,24 @@ class Colector(object):
         self.status["state"][0] = state
         self.status["state"][1].set(state)
     
-    def getSyncState(self):
+    def syncIsRunning(self):
         return not not self.status["state"][0]
+
+    def monitorSyncLock(self):
+        while True:
+            sleep(1)
+            if self.syncIsRunning():
+                self.status["locked"].set(int(self.last_capture+self.config["maxWaitMsPerRecord"]<=datetime.now().timestamp()))
+                continue
+            self.status["locked"].set(0)
+
+
+
+    def getMetrics(self):
+        return registry_to_text(self.registry)
+
+    def __setattr__(self, name, value):
+        pass
 
 
 class NoPodsFounError(Exception):

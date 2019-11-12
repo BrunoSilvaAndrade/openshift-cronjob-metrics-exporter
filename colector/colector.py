@@ -7,6 +7,7 @@ from utils.struct_validate import *
 from threading import Thread
 from .exceptions import *
 from time import sleep
+from datetime import datetime
 
 from pyprometheus.registry import BaseRegistry
 from pyprometheus import LocalMemoryStorage
@@ -26,36 +27,45 @@ class Colector(object):
     def __init__(self,*args,**kwargs):
 
         self.__dict__["config"] = kwargs
-        self.HEADERS["Authorization"] = self.HEADERS["Authorization"].format(self.config["token"])
         self.__dict__["metrics"] = {"times_write":{},"times_read":{}}
         self.__dict__["registry"] = BaseRegistry(storage=LocalMemoryStorage())
-        self.__dict__["status"] = Gauge("sync_is_running","Sync (running/not running) status.If 0 not running, if 1 running",registry=self.registry)
+        self.__dict__["status"] = {
+                "state":[0,Gauge("sync_is_running","Sync (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
+                "locked": Gauge("sync_is_locked","Sync (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry)
+                }
+
+        self.__dict__["last_capture"] = 0
+
+        self.HEADERS["Authorization"] = self.HEADERS["Authorization"].format(self.config["token"])
+
         logging.getLogger(__name__)
 
-    def consolidate(self,index,context,line):
-        for id_regex in context:
-            for id_timer in line:
+    def consolidate(self,index,context,line):    
+        for id_timer in line:
+            for id_regex in context:
                 value = line[id_timer]["executionTime"]
                 if re.search(id_regex,id_timer) is not None:
+                    last_capture = datetime.now().timestamp()
                     for time_type in self.METRIC_TYPES:
                         if time_type in context[id_regex]:
                             str_regex = id_regex.replace(".","_")
                             if id_regex not in self.metrics[index]:
                                 self.metrics[index][id_regex] = {
-                                                        "cur":Gauge("cur_{}_{}".format(index,str_regex),"current metrics from {}".format(str_regex),registry=self.registry),
-                                                        "min":[Gauge("min_{}_{}".format(index,str_regex),"minimal metrics from {}".format(str_regex),registry=self.registry),None],
-                                                        "max":[Gauge("max_{}_{}".format(index,str_regex),"maximun metrics from {}".format(str_regex),registry=self.registry),0]
-                                                    }
+                                    "cur":Gauge("cur_{}_{}".format(index,str_regex),"current metrics from {}".format(str_regex),registry=self.registry),
+                                    "min":[Gauge("min_{}_{}".format(index,str_regex),"minimal metrics from {}".format(str_regex),registry=self.registry),None],
+                                    "max":[Gauge("max_{}_{}".format(index,str_regex),"maximun metrics from {}".format(str_regex),registry=self.registry),0]
+                                }
                             if time_type == "cur":
+                                self.__dict__["last_capture"] = last_capture
                                 self.metrics[index][id_regex]["cur"].set(value)
-                            if time_type == "max":
-                                if self.metrics[index][id_regex]["max"][1] < value:
-                                    self.metrics[index][id_regex]["max"][1] = value
-                                    self.metrics[index][id_regex]["max"][0].set(value)
-                            if time_type == "min":
-                                if self.metrics[index][id_regex]["min"][1] is None or self.metrics[index][id_regex]["min"][1] > value:
-                                    self.metrics[index][id_regex]["min"][1] = value
-                                    self.metrics[index][id_regex]["min"][0].set(value)
+                            if time_type == "max" and self.metrics[index][id_regex]["max"][1] < value:
+                                self.__dict__["last_capture"] = last_capture
+                                self.metrics[index][id_regex]["max"][1] = value
+                                self.metrics[index][id_regex]["max"][0].set(value)
+                            if time_type == "min" and (self.metrics[index][id_regex]["min"][1] is None or self.metrics[index][id_regex]["min"][1] > value):
+                                self.__dict__["last_capture"] = last_capture
+                                self.metrics[index][id_regex]["min"][1] = value
+                                self.metrics[index][id_regex]["min"][0].set(value)
 
     def collect(self):
         threads = {}
@@ -77,8 +87,7 @@ class Colector(object):
 
                 logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
 
-                logs = req.get(
-                                "{}/{}/{}".format(
+                logs = req.get("{}/{}/{}".format(
                                     self.config["endpoint"],
                                     self.API_PREFIX_GET_PODS,
                                     self.API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"])),
@@ -86,7 +95,7 @@ class Colector(object):
 
                 logging.info("RECEIVING LOG LINES FROM POD FROM CRONJOB {}".format(self.config["name"]))
 
-                self.status.set(1)
+                self.setSyncState(1)
 
                 for line in logs.iter_lines():
                     line = line.decode('utf-8')
@@ -107,14 +116,14 @@ class Colector(object):
 
                         except (json.JSONDecodeError,StructValidateException):
                             continue
-                    while (not not len(threads)):
+                    while (len(threads)):
                         for index in list(threads):
                             if not threads[index][0].is_alive() and not threads[index][1].is_alive():
                                 threads.pop(index)
             except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError):
                 pass
 
-            self.status.set(0)
+            self.setSyncState(0)
 
             for timer_type in self.metrics:
                 for capture in self.metrics[timer_type]:
@@ -137,6 +146,19 @@ class Colector(object):
     def consolidTimeRead(self,context,line):
         index = "times_read"
         self.consolidate(index,context[index],line[index])
+
+    def setSyncState(self,state):
+        state = int(not not state)
+        if state:
+            self.status["state"][0] = state
+            self.status["state"][1].set(state)
+            return
+        self.status["state"][0] = state
+        self.status["state"][1].set(state)
+    
+    def getSyncState(self):
+        return not not self.status["state"][0]
+
 
 class NoPodsFounError(Exception):
     def __init__(self, *args, **kwargs):

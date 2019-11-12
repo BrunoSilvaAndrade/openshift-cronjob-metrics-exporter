@@ -158,7 +158,7 @@ class Colector(object):
         while True:
             sleep(1)
             if self.syncIsRunning():
-                self.status["locked"].set(int(self.last_capture+self.config["maxWaitMsPerRecord"]<=datetime.now().timestamp()))
+                self.status["locked"].set(int(self.last_capture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp()))
                 continue
             self.status["locked"].set(0)
 

@@ -17,7 +17,9 @@ from pyprometheus import Gauge
 class Colector(object):
     CONTJOB_TEMPLATE = "cronjob-{}"
     TIME_BETWEEN_ITERS = 5
-    API_PREFIX_GET_PODS = "api/v1/namespaces/viamais-sync/pods"
+    API_PREFIX_NS = "api/v1/namespaces/viamais-sync/{}"
+    API_PREFIX_GET_PODS = API_PREFIX_NS.format("pods")
+    API_PREFIX_GET_ESPECIFIED_POD = API_PREFIX_NS.format("pods/{}")
     API_POSTFIX_GET_LOGS = "{}/log?tailLines=0&follow=true"
     HEADERS={"Accept": "application/json","Authorization":"Bearer {}"}
     REGEX_TEMPLATE_CAPT_METRCIS = "^.*{} METRICS: {}:"
@@ -31,7 +33,8 @@ class Colector(object):
         self.__dict__["registry"] = BaseRegistry(storage=LocalMemoryStorage())
         self.__dict__["status"] = {
                 "state":[0,Gauge("sync_is_running","Sync (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
-                "locked": Gauge("sync_is_locked","Sync (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry)
+                "locked": Gauge("sync_is_locked","Sync (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry),
+                "last_status":Gauge("sync_last_status","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)
                 }
 
         self.__dict__["last_capture"] = 0
@@ -72,8 +75,7 @@ class Colector(object):
         threads = {}
         while True:
             try:
-                pods = req.get("{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False)
-                pods = json.loads(pods.content)
+                pods = json.loads(req.get("{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False).content)
                 validateStruct({"items":[{"metadata":{},"spec":{},"status":{}}]},pods)
                 for pod in pods["items"]:
                     try:
@@ -85,6 +87,8 @@ class Colector(object):
                 if pod is None:
                     logging.info("WAITING FOR POD FROM CRONJOB {}".format(self.config["name"]))
                     raise NoPodsFounError()
+
+                pods = None
 
                 logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
 
@@ -121,6 +125,11 @@ class Colector(object):
                         for index in list(threads):
                             if not threads[index][0].is_alive() and not threads[index][1].is_alive():
                                 threads.pop(index)
+
+                pod = json.loads(req.get("{}/{}".format(self.config["endpoint"],self.API_PREFIX_GET_ESPECIFIED_POD.format(pod["metadata"]["name"])),headers=self.HEADERS,verify=False).content)
+
+                self.status["last_status"].set(int(pod["status"]["phase"] not in ("Running","Succeeded")))
+                
             except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError):
                 pass
 

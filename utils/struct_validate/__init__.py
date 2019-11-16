@@ -1,2 +1,2 @@
-from .struct_validate import validateStruct,validateStructColectors
-from .exceptions import StructValidateException,StructColectorsException
+from .struct_validate import validateStruct
+from .exceptions import StructValidateException

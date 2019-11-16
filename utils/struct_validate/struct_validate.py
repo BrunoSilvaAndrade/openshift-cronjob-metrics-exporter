@@ -1,4 +1,4 @@
-from .exceptions import StructValidateException,StructColectorsException
+from .exceptions import StructValidateException
 from pprint import PrettyPrinter
 
 
@@ -33,19 +33,3 @@ def validateStruct(struct,config):
         raise StructValidateException()
     except StructValidateException:
         raise StructValidateException(PrettyPrinter(indent=INDENT_LEVEL).pformat(struct))
-
-def validateStructColectors(colector):
-    COLECTOR_EXAMPLE = {"name":str,"contexts":[{"name":str,"regex_sub":str,"times_write":{"time_of_write_interation":list},"times_read":{"time_of_read_interation":list,}}]}
-    mod_timers = ["times_write","times_read"]
-    try:
-        if not isinstance(colector["contexts"],list):
-            raise StructColectorsException()
-        for context in colector["contexts"]:
-            for mod_timer in mod_timers:
-                if not (isinstance(context[mod_timer],dict)):
-                    raise StructColectorsException()
-                for timer in context[mod_timer]:
-                    if not isinstance(context[mod_timer][timer],list):
-                        raise StructColectorsException()
-    except (KeyError,StructColectorsException):
-        raise StructColectorsException(PrettyPrinter(indent=INDENT_LEVEL).pformat(COLECTOR_EXAMPLE))

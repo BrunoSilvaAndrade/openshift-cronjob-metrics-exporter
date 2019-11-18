@@ -33,10 +33,10 @@ class Colector(object):
         self.status = {
                 "state":[0,Gauge("sync_is_running","Sync (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
                 "locked": Gauge("sync_is_locked","Sync (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry),
-                "last_status":Gauge("sync_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)
+                "lastStatus":Gauge("sync_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)
                 }
 
-        self.last_capture = datetime.now().timestamp()
+        self.lastCapture = datetime.now().timestamp()
 
         self.HEADERS = {"Accept": "application/json","Authorization":"Bearer {}".format(self.config["token"])}
 
@@ -45,11 +45,11 @@ class Colector(object):
     def abstractMetric(self,metricKey,metricList,dataMetrics):
         for metric in metricList:
             if metric in dataMetrics and isinstance(dataMetrics[metric],int):
-                last_capture = datetime.now().timestamp()
+                lastCapture = datetime.now().timestamp()
                 if metric not in self.metrics[metricKey]:
                     self.metrics[metricKey][metric] = Gauge(metric,"Metrics type {} of key {}".format(metricKey,metric),registry=self.registry)
                 return self.metrics[metricKey][metric],dataMetrics[metric]
-                self.last_capture = last_capture
+                self.lastCapture = lastCapture
             return None,None
 
     def gauge(self,metricList,dataMetrics):
@@ -77,16 +77,20 @@ class Colector(object):
 
     def monitorSyncLock(self):
         while True:
-            sleep(1)
+            sleep(self.config["maxWaitPerRecord"]/2)
             if self.syncIsRunning():
-                self.status["locked"].set(int(self.last_capture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp()))
+                self.status["locked"].set(int(self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp()))
                 continue
             self.status["locked"].set(0)
 
     def unregisterMetrics(self):
+        self.registry = BaseRegistry(storage=LocalMemoryStorage())
+        self.status["state"][1].add_to_registry(self.registry)
+        self.setSyncState(self.syncIsRunning())
+        self.status["locked"].add_to_registry(self.registry)
+        self.status["lastStatus"].add_to_registry(self.registry)
         for metricKey in list(self.metrics):
             for collectorKey in list(self.metrics[metricKey]):
-                self.registry.unregister(self.metrics[metricKey][collectorKey])
                 self.metrics[metricKey].pop(collectorKey)
 
 
@@ -140,7 +144,7 @@ class Colector(object):
                 if pod["status"]["phase"] == "Running":
                     continue
                 
-                self.status["last_status"].set(int(pod["status"]["phase"] != "Succeeded"))
+                self.status["lastStatus"].set(int(pod["status"]["phase"] != "Succeeded"))
                 
             except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError):
                 pass

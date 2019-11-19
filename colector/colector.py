@@ -10,6 +10,7 @@ from utils.struct_validate import *
 from threading import Thread
 from time import sleep
 from datetime import datetime
+from http import HTTPStatus
 
 from pyprometheus.registry import BaseRegistry
 from pyprometheus import LocalMemoryStorage
@@ -134,12 +135,13 @@ class Colector(object):
                         except (json.JSONDecodeError):
                             continue
 
-                pod = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(pod["metadata"]["name"])),headers=self.HEADERS,verify=False).content)
+                res = req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(pod["metadata"]["name"])),headers=self.HEADERS,verify=False)
+                pod = json.loads(res.content)
 
-                if pod["status"]["phase"] == "Running":
+                if res.status_code == HTTPStatus.OK and pod["status"]["phase"] == "Running":
                     continue
                 
-                self.status["lastStatus"].set(int(pod["status"]["phase"] != "Succeeded"))
+                self.status["lastStatus"].set(int(res.status_code == HTTPStatus.OK and pod["status"]["phase"] != "Succeeded"))
                 
             except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError):
                 pass

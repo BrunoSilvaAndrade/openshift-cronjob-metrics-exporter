@@ -3,9 +3,11 @@ import json
 import requests as req
 import re
 
+from .constats import *
+from .exceptions import *
+
 from utils.struct_validate import *
 from threading import Thread
-from .exceptions import *
 from time import sleep
 from datetime import datetime
 
@@ -13,15 +15,6 @@ from pyprometheus.registry import BaseRegistry
 from pyprometheus import LocalMemoryStorage
 from pyprometheus.utils.exposition import registry_to_text
 from pyprometheus import Gauge,Counter
-
-
-CONTJOB_TEMPLATE = "cronjob-{}"
-TIME_BETWEEN_ITERS = 5
-API_PREFIX_NS = "api/v1/namespaces/viamais-sync/{}"
-API_PREFIX_GET_PODS = API_PREFIX_NS.format("pods")
-API_PREFIX_GET_ESPECIFIED_POD = API_PREFIX_NS.format("pods/{}")
-API_POSTFIX_GET_LOGS = "{}/log?tailLines=0&follow=true"
-REGEX_TEMPLATE_CAPT_METRCIS = "^.*{} METRICS: "
 
 class Colector(object):
 

@@ -26,8 +26,8 @@ class Colector(object):
         self.registry = BaseRegistry(storage=LocalMemoryStorage())
         self.status = {
                 "state":[0,Gauge("sync_is_running","Sync (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
-                "locked": Gauge("sync_is_locked","Sync (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry),
-                "lastStatus":Gauge("sync_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)
+                "locked":[0,Gauge("sync_is_locked","Sync (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry)],
+                "lastStatus":[0,Gauge("sync_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)]
                 }
 
         self.lastCapture = datetime.now().timestamp()
@@ -58,33 +58,55 @@ class Colector(object):
             collector,value = self.abstractMetric(Counter,metricName,dataMetrics)
             if collector is not None:
                 collector.inc(value)
+    
+    def abstractSetStatus(self,statusName,status):
+        status = int(not not status)
+        if status:
+            self.status[statusName][0] = status
+            self.status[statusName][1].set(status)
+            return
+        self.status[statusName][0] = status
+        self.status[statusName][1].set(status)
+
+    def abstractGetStatus(self,statusName):
+        return not not self.status[statusName][0]
 
     def setSyncState(self,state):
-        state = int(not not state)
-        if state:
-            self.status["state"][0] = state
-            self.status["state"][1].set(state)
-            return
-        self.status["state"][0] = state
-        self.status["state"][1].set(state)
+        self.abstractSetStatus("state",state)
     
     def syncIsRunning(self):
-        return not not self.status["state"][0]
+        return self.abstractGetStatus("state")
+
+    def setSyncLocked(self,state):
+        self.abstractSetStatus("locked",state)
+
+    def syncIsLocked(self):
+        return self.abstractGetStatus("locked")
+
+    def setLastStatus(self,state):
+        self.abstractSetStatus("lastStatus",state)
+
+    def getLastStatus(self):
+        return self.abstractGetStatus("lastStatus")
 
     def monitorSyncLock(self):
         while True:
             sleep(self.config["maxWaitPerRecord"]/2)
             if self.syncIsRunning():
-                self.status["locked"].set(int(self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp()))
+                self.setSyncLocked(self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp())
                 continue
-            self.status["locked"].set(0)
+            self.setSyncLocked(0)
 
     def unregisterMetrics(self):
         self.registry = BaseRegistry(storage=LocalMemoryStorage())
         self.status["state"][1].add_to_registry(self.registry)
+        self.status["locked"][1].add_to_registry(self.registry)
+        self.status["lastStatus"][1].add_to_registry(self.registry)
+
         self.setSyncState(self.syncIsRunning())
-        self.status["locked"].add_to_registry(self.registry)
-        self.status["lastStatus"].add_to_registry(self.registry)
+        self.setSyncLocked(self.syncIsLocked())
+        self.setLastStatus(self.getLastStatus())
+
         for metricKey in list(self.metrics):
             for collectorKey in list(self.metrics[metricKey]):
                 self.metrics[metricKey].pop(collectorKey)
@@ -141,7 +163,7 @@ class Colector(object):
                 if res.status_code == HTTPStatus.OK and pod["status"]["phase"] == "Running":
                     continue
                 
-                self.status["lastStatus"].set(int(res.status_code == HTTPStatus.OK and pod["status"]["phase"] != "Succeeded"))
+                self.setLastStatus(res.status_code == HTTPStatus.OK and pod["status"]["phase"] != "Succeeded")
                 
             except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError):
                 pass

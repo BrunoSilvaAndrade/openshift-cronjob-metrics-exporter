@@ -35,27 +35,28 @@ class Colector(object):
 
         logging.getLogger(__name__)
 
-    def abstractMetric(self,metricClass,metricList,dataMetrics):
+    def abstractMetric(self,metricClass,metricName,dataMetrics):
         metricKey = metricClass.__name__
-        for metric in metricList:
-            if metric in dataMetrics and isinstance(dataMetrics[metric],int):
-                lastCapture = datetime.now().timestamp()
-                if metric not in self.metrics[metricKey]:
-                    self.metrics[metricKey][metric] = metricClass(metric,"Metrics type {} of key {}".format(metricKey,metric),registry=self.registry)
-                return self.metrics[metricKey][metric],dataMetrics[metric]
-                self.lastCapture = lastCapture
-            return None,None
+        if metricName in dataMetrics and isinstance(dataMetrics[metricName],int):
+            lastCapture = datetime.now().timestamp()
+            if metricName not in self.metrics[metricKey]:
+                self.metrics[metricKey][metricName] = metricClass(metricName,"Metrics type {} of key {}".format(metricKey,metricName),registry=self.registry)
+            self.lastCapture = lastCapture
+            return self.metrics[metricKey][metricName],dataMetrics[metricName]
+        return None,None
 
     def gauge(self,metricList,dataMetrics):
-        collector,value = self.abstractMetric(Gauge,metricList,dataMetrics)
-        if collector is not None:
-            collector.set(value)
+        for metricName in metricList:
+            collector,value = self.abstractMetric(Gauge,metricName,dataMetrics)
+            if collector is not None:
+                collector.set(value)
             
 
     def counter(self,metricList,dataMetrics):
-        collector,value = self.abstractMetric(Counter,metricList,dataMetrics)
-        if collector is not None:
-            collector.inc(value)
+        for metricName in metricList:
+            collector,value = self.abstractMetric(Counter,metricName,dataMetrics)
+            if collector is not None:
+                collector.inc(value)
 
     def setSyncState(self,state):
         state = int(not not state)
@@ -128,7 +129,7 @@ class Colector(object):
                                 line = re.sub(regex_sub,"",str(line))
                                 line = json.loads(line)
                                 self.gauge(self.config["contexts"][index]["Gauge"],line)
-                                self.counter(self.config["contexts"][index]["Count"],line)
+                                self.counter(self.config["contexts"][index]["Counter"],line)
 
                         except (json.JSONDecodeError):
                             continue

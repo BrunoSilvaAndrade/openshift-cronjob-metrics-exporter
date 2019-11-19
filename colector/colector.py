@@ -12,7 +12,7 @@ from datetime import datetime
 from pyprometheus.registry import BaseRegistry
 from pyprometheus import LocalMemoryStorage
 from pyprometheus.utils.exposition import registry_to_text
-from pyprometheus import Gauge
+from pyprometheus import Gauge,Counter
 
 
 CONTJOB_TEMPLATE = "cronjob-{}"
@@ -42,24 +42,25 @@ class Colector(object):
 
         logging.getLogger(__name__)
 
-    def abstractMetric(self,metricKey,metricList,dataMetrics):
+    def abstractMetric(self,metricClass,metricList,dataMetrics):
+        metricKey = metricClass.__name__
         for metric in metricList:
             if metric in dataMetrics and isinstance(dataMetrics[metric],int):
                 lastCapture = datetime.now().timestamp()
                 if metric not in self.metrics[metricKey]:
-                    self.metrics[metricKey][metric] = Gauge(metric,"Metrics type {} of key {}".format(metricKey,metric),registry=self.registry)
+                    self.metrics[metricKey][metric] = metricClass(metric,"Metrics type {} of key {}".format(metricKey,metric),registry=self.registry)
                 return self.metrics[metricKey][metric],dataMetrics[metric]
                 self.lastCapture = lastCapture
             return None,None
 
     def gauge(self,metricList,dataMetrics):
-        collector,value = self.abstractMetric("Gauge",metricList,dataMetrics)
+        collector,value = self.abstractMetric(Gauge,metricList,dataMetrics)
         if collector is not None:
             collector.set(value)
             
 
     def counter(self,metricList,dataMetrics):
-        collector,value = self.abstractMetric("Counter",metricList,dataMetrics)
+        collector,value = self.abstractMetric(Counter,metricList,dataMetrics)
         if collector is not None:
             collector.inc(value)
 

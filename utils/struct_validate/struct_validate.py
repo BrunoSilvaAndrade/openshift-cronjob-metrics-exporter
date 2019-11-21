@@ -5,31 +5,31 @@ from pprint import PrettyPrinter
 INDENT_LEVEL = 4
 
 
-def validateStruct(struct,config):
+def validateStruct(structBase,structAnalyse):
     try:
-        if isinstance(struct,dict):
-            if not isinstance(config,dict):
+        if isinstance(structBase,dict):
+            if not isinstance(structAnalyse,dict):
                 raise StructValidateException()
-            for k in struct:
+            for k in structBase:
                 try:
-                    if isinstance(struct[k],dict):
-                        validateStruct(struct[k],config[k])
+                    if isinstance(structBase[k],dict):
+                        validateStruct(structBase[k],structAnalyse[k])
                         continue
-                    elif isinstance(struct[k],list):
-                        validateStruct(struct[k],config[k])
+                    elif isinstance(structBase[k],list):
+                        validateStruct(structBase[k],structAnalyse[k])
                         continue
-                    elif not(isinstance(config[k],struct[k])):
+                    elif not(isinstance(structAnalyse[k],structBase[k])):
                         raise StructValidateException()
                 except KeyError:
                     raise StructValidateException()
             return
-        elif isinstance(struct,list):
-            if not isinstance(config,list):
+        elif isinstance(structBase,list):
+            if not isinstance(structAnalyse,list):
                 raise StructValidateException()
-            for i in range(0,len(config)):
-                if isinstance(struct[0],dict): 
-                    validateStruct(struct[0],config[i])
+            for i in range(0,len(structAnalyse)):
+                if isinstance(structBase[0],dict): 
+                    validateStruct(structBase[0],structAnalyse[i])
             return
         raise StructValidateException()
     except StructValidateException:
-        raise StructValidateException(PrettyPrinter(indent=INDENT_LEVEL).pformat(struct))
+        raise StructValidateException("FOLLOW THIS STRUCT FORMAT {}".format(PrettyPrinter(indent=INDENT_LEVEL).pformat(structBase)))

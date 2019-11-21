@@ -10,7 +10,6 @@ from utils.struct_validate import *
 from threading import Thread
 from time import sleep
 from datetime import datetime
-from http import HTTPStatus
 
 from pyprometheus.registry import BaseRegistry
 from pyprometheus import LocalMemoryStorage
@@ -157,16 +156,15 @@ class Colector(object):
                         except (json.JSONDecodeError):
                             continue
 
-                res = req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(pod["metadata"]["name"])),headers=self.HEADERS,verify=False)
-                pod = json.loads(res.content)
-
-                if res.status_code == HTTPStatus.OK and pod["status"]["phase"] == "Running":
+                pod = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(pod["metadata"]["name"])),headers=self.HEADERS,verify=False).content)
+                validateStruct({"status":{"phase":str}},pod)
+                if pod["status"]["phase"] == "Running":
                     continue
                 
-                self.setLastStatus(res.status_code == HTTPStatus.OK and pod["status"]["phase"] != "Succeeded")
+                self.setLastStatus(pod["status"]["phase"] != "Succeeded")
                 
-            except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError):
-                pass
+            except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError) as e:
+                logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {}".format(str(e)))
             
             self.unregisterMetrics()
             self.setSyncState(0)
@@ -177,4 +175,6 @@ class Colector(object):
 
 class NoPodsFounError(Exception):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        if len(args) > 1:
+            args = args[1:]
+        super().__init__(self.__class__.__name__,*args, **kwargs)

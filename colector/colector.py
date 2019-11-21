@@ -164,7 +164,7 @@ class Colector(object):
                 self.setLastStatus(pod["status"]["phase"] != "Succeeded")
                 
             except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError) as e:
-                logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {}".format(str(e)))
+                logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {} {}".format(e.__class__.__name__,str(e)))
             
             self.unregisterMetrics()
             self.setSyncState(0)
@@ -175,6 +175,4 @@ class Colector(object):
 
 class NoPodsFounError(Exception):
     def __init__(self, *args, **kwargs):
-        if len(args) > 1:
-            args = args[1:]
-        super().__init__(self.__class__.__name__,*args, **kwargs)
+        super().__init__(*args, **kwargs)

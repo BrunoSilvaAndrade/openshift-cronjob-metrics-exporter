@@ -24,9 +24,9 @@ class Colector(object):
         self.metrics = {"Gauge":{},"Counter":{}}
         self.registry = BaseRegistry(storage=LocalMemoryStorage())
         self.status = {
-                "state":[0,Gauge("sync_is_running","Sync (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
-                "locked":[0,Gauge("sync_is_locked","Sync (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry)],
-                "lastStatus":[0,Gauge("sync_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)]
+                "state":[0,Gauge("process_is_running","Process (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
+                "locked":[0,Gauge("process_is_locked","Process (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry)],
+                "lastStatus":[0,Gauge("process_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)]
                 }
 
         self.lastCapture = datetime.now().timestamp()
@@ -116,7 +116,7 @@ class Colector(object):
         threads = {}
         while True:
             try:
-                pods = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_PODS),headers=self.HEADERS,verify=False).content)
+                pods = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_PODS.format(self.config["namespace"])),headers=self.HEADERS,verify=False).content)
                 validateStruct({"items":[{"metadata":{},"spec":{},"status":{}}]},pods)
                 for pod in pods["items"]:
                     try:
@@ -136,7 +136,7 @@ class Colector(object):
 
                 logs = req.get("{}/{}/{}".format(
                                     self.config["endpoint"],
-                                    API_PREFIX_GET_PODS,
+                                    API_PREFIX_GET_PODS.format(self.config["namespace"]),
                                     API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"])),
                                     headers=self.HEADERS,verify=False,stream=True)
 
@@ -156,7 +156,7 @@ class Colector(object):
                         except (json.JSONDecodeError):
                             continue
 
-                pod = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(pod["metadata"]["name"])),headers=self.HEADERS,verify=False).content)
+                pod = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(self.config["namespace"],pod["metadata"]["name"])),headers=self.HEADERS,verify=False).content)
                 validateStruct({"status":{"phase":str}},pod)
                 if pod["status"]["phase"] == "Running":
                     continue

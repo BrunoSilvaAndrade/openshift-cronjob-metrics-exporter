@@ -7,7 +7,7 @@ from utils.struct_validate import validateStruct,StructValidateException
 class Config():
     CUR_DIR = path.dirname(path.realpath(__file__))
     DEFAULT_CONFIG_FILE = "{}/{}".format(CUR_DIR,"config.json")
-    CONFIG_SCHEMA = {"openshift":{"endpoint":str,"token":str},"colectors":[{"name":str,"maxWaitPerRecord":int,"contexts":[{"regex_name":str,"Gauge":list,"Counter":list}]}]}
+    CONFIG_SCHEMA = {"openshift":{"endpoint":str,"token":str,"namespace":str},"colectors":[{"name":str,"maxWaitPerRecord":int,"contexts":[{"regex_name":str,"Gauge":list,"Counter":list}]}]}
     EXAMPLE_CONFIG_SCHEMA = "FOLLOW CONFIG EXAMPLE SHCHEMA\n{}"
     
     def __init__(self):
@@ -19,8 +19,7 @@ class Config():
         try:
             config = json.loads(file_buff)
             validateStruct(self.CONFIG_SCHEMA,config)
-            self.__dict__["token"] = config["openshift"]["token"]
-            self.__dict__["endpoint"] = config["openshift"]["endpoint"]
+            self.__dict__["openshift"] = config["openshift"]
             self.__dict__["colectors"] = config["colectors"]
 
         except json.JSONDecodeError:

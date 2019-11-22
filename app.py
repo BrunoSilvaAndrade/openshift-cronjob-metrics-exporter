@@ -24,7 +24,7 @@ except ConfigException as e:
 colectors = config.colectors
 threads = []
 for index in range(0,len(colectors)):
-    colectors[index] = Colector(**{**colectors[index],"token":config.token,"endpoint":config.endpoint})
+    colectors[index] = Colector(**{**colectors[index],**config.openshift})
     threads.append(Thread(target=colectors[index].collect))
     threads[index].start()
 

@@ -18,9 +18,9 @@ from pyprometheus import Gauge,Counter
 
 class Colector(object):
 
-    def __init__(self,*args,**kwargs):
+    def __init__(self,config):
 
-        self.config = kwargs
+        self.config = config
         self.metrics = {"Gauge":{},"Counter":{}}
         self.registry = BaseRegistry(storage=LocalMemoryStorage())
         self.status = {

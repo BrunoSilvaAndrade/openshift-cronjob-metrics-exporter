@@ -28,10 +28,10 @@ for index in range(0,len(colectors)):
     threads.append(Thread(target=colectors[index].collect))
     threads[index].start()
 
-@app.route("/<sync_name>/METRICS")
-def get_metrics(sync_name):
+@app.route("/<cronjob_name>/METRICS")
+def get_metrics(cronjob_name):
     for colector in colectors:
-        if colector.config["name"] == sync_name:
+        if colector.config["name"] == cronjob_name:
             resp = Response(headers={"Content-Type":"text/plain; version=0.0.4"})
             resp.data = colector.getMetrics()
             return resp

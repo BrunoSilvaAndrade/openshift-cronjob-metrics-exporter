@@ -1,0 +1,23 @@
+{
+    "openshift":{
+        "namespace":"your-project",
+        "endpoint":"https://your-openshift.endpoint",
+	"token":"your-service-account-token"
+    },
+    "colectors":[
+        {
+            "name":"your-cronjob",
+            "maxWaitPerRecord": 10,
+            "contexts":[{
+                "regex_name":"your-metrics-logs-identification-1",
+                "Gauge":["your-metric-key-1"],
+                "Counter":[]
+            },
+            {
+                "regex_name":"your-metrics-logs-identification-2",
+                "Gauge":["your-metric-key-1"],
+                "Counter":[]
+            }]
+        }
+    ]
+}

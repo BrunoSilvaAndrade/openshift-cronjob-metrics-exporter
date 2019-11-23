@@ -70,16 +70,16 @@ class Colector(object):
     def abstractGetStatus(self,statusName):
         return not not self.status[statusName][0]
 
-    def setSyncState(self,state):
-        self.abstractSetStatus("state",state)
+    def setProccessState(self,running=False):
+        self.abstractSetStatus("state",running)
     
-    def syncIsRunning(self):
+    def proccessIsRunning(self):
         return self.abstractGetStatus("state")
 
-    def setSyncLocked(self,state):
-        self.abstractSetStatus("locked",state)
+    def setProccessLocked(self,locked=False):
+        self.abstractSetStatus("locked",locked)
 
-    def syncIsLocked(self):
+    def proccessIsLocked(self):
         return self.abstractGetStatus("locked")
 
     def setLastStatus(self,state):
@@ -88,13 +88,13 @@ class Colector(object):
     def getLastStatus(self):
         return self.abstractGetStatus("lastStatus")
 
-    def monitorSyncLock(self):
+    def monitorProccessLock(self):
         while True:
             sleep(self.config["maxWaitPerRecord"]/2)
-            if self.syncIsRunning():
-                self.setSyncLocked(self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp())
+            if self.proccessIsRunning():
+                self.setProccessLocked(locked=self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp())
                 continue
-            self.setSyncLocked(0)
+            self.setProccessLocked(locked=False)
 
     def unregisterMetrics(self):
         self.registry = BaseRegistry(storage=LocalMemoryStorage())
@@ -102,8 +102,8 @@ class Colector(object):
         self.status["locked"][1].add_to_registry(self.registry)
         self.status["lastStatus"][1].add_to_registry(self.registry)
 
-        self.setSyncState(self.syncIsRunning())
-        self.setSyncLocked(self.syncIsLocked())
+        self.setProccessState(running=self.proccessIsRunning())
+        self.setProccessLocked(locked=self.proccessIsLocked())
         self.setLastStatus(self.getLastStatus())
 
         for metricKey in list(self.metrics):
@@ -112,7 +112,7 @@ class Colector(object):
 
 
     def collect(self):
-        Thread(target=self.monitorSyncLock).start()
+        Thread(target=self.monitorProccessLock).start()
         threads = {}
         while True:
             try:
@@ -127,12 +127,12 @@ class Colector(object):
                         pod = None
                 if pod is None:
                     logging.info("WAITING FOR POD FROM CRONJOB {}".format(self.config["name"]))
-                    raise NoPodsFounError()
+                    raise NoPodsFoundedError()
                 pods = None
 
                 logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
 
-                self.setSyncState(1)
+                self.setProccessState(running=True)
 
                 logs = req.get("{}/{}/{}".format(
                                     self.config["endpoint"],
@@ -163,16 +163,12 @@ class Colector(object):
                 
                 self.setLastStatus(pod["status"]["phase"] != "Succeeded")
                 
-            except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFounError) as e:
+            except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFoundedError) as e:
                 logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {} {}".format(e.__class__.__name__,str(e)))
             
             self.unregisterMetrics()
-            self.setSyncState(0)
+            self.setProccessState(running=False)
             sleep(TIME_BETWEEN_ITERS)
 
     def getMetrics(self):
         return registry_to_text(self.registry)
-
-class NoPodsFounError(Exception):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)

@@ -4,7 +4,7 @@ import urllib3
 from threading import Thread
 from utils import _ExitCode
 from config import Config,ConfigException
-from colector import Colector,ColectorInitError
+from colector import Colector
 from flask import Flask,Response,abort
 from http import HTTPStatus
 

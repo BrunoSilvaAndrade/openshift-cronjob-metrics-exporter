@@ -127,7 +127,7 @@ class Colector(object):
                         pod = None
                 if pod is None:
                     logging.info("WAITING FOR POD FROM CRONJOB {}".format(self.config["name"]))
-                    raise NoPodsFoundedError()
+                    raise NoPodsFoundedException()
                 pods = None
 
                 logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
@@ -163,7 +163,7 @@ class Colector(object):
                 
                 self.setLastStatus(pod["status"]["phase"] != "Succeeded")
                 
-            except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFoundedError) as e:
+            except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFoundedException) as e:
                 logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {} {}".format(e.__class__.__name__,str(e)))
             
             self.unregisterMetrics()

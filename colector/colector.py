@@ -60,10 +60,6 @@ class Colector(object):
     
     def abstractSetStatus(self,statusName,status):
         status = int(not not status)
-        if status:
-            self.status[statusName][0] = status
-            self.status[statusName][1].set(status)
-            return
         self.status[statusName][0] = status
         self.status[statusName][1].set(status)
 

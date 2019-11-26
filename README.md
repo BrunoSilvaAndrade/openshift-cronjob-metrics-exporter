@@ -28,10 +28,17 @@ The log parser is set by context.
 ```
 Logs must maintain a pattern to parse.
 
-The regex that captures the line consists of "^.*{} METRICS: ".format(regex_name)
+The regex that captures the line consists of 
+
+```
+    "^.*{} METRICS: ".format(regex_name)
+```
 
 This setting will capture the following log line.
+
+```
     [some date dd/mm/yyyy][some info] your-metrics-logs-identification-1 METRICS: {"your-metric-key-1":200}
+```
 
 The json is removed from the line then the json parse attempt is made.
 

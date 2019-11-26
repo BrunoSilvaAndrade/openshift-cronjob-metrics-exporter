@@ -19,12 +19,13 @@ Features
 THE OPERATION OF THE SYSTEM
 ---------------------------
 The log parser is set by context.
+```
     {
-    "regex_name":"your-metrics-logs-identification-1",
-    "Gauge":["your-metric-key-1"],
-    "Counter":[]
+        "regex_name":"your-metrics-logs-identification-1",
+        "Gauge":["your-metric-key-1"],
+        "Counter":[]
     }
-
+```
 Logs must maintain a pattern to parse.
 
 The regex that captures the line consists of "^.*{} METRICS: ".format(regex_name)

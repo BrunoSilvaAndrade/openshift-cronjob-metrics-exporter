@@ -15,7 +15,7 @@
             },
             {
                 "regex_name":"your-metrics-logs-identification-2",
-                "Gauge":["your-metric-key-1"],
+                "Gauge":["your-metric-key-2"],
                 "Counter":[]
             }]
         }

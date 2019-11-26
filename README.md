@@ -1,30 +1,51 @@
-Openshift Cronjob metrics exporter
+Openshift cronjob metrics exporter
 ============================================================
 
 
 Features
 --------
 
-- Three default Gauge metrics (process_is_running,process_is_locked,process_last_exec_with_error)
-- 2 Metric types(Gauge,Counter)
-- Create and capture custom metrics by configuration.
-- Configure max wait for capture new metric or process_is_locked is set to "True"
-- Simple Configuration
-- The proccess is based is log watch
-- Export type prometheus
-- Multiple colectors and contexts
+- Three default pod status in Gauge metric (process_is_running,process_is_locked,process_last_exec_with_error).
+- Two types of Metric (Gauge,Counter).
+- Create and capturing custom metrics by configuration.
+- Configuring max wait,the proccess will wait for new metrics of log otherwise process_is_locked will be set to "True".
+- Easy for configure.
+- The proccess is based in log watch.
+- The form of export follows the prometheus format.
+- Multiple colectors and contexts.
 
 
 
-THE OPERATION OF THE SYSTEM
+HOW IT WORKS
 ---------------------------
 The log parser is set by context.
 ```
+{
+    "openshift":
     {
-        "regex_name":"your-metrics-logs-identification-1",
-        "Gauge":["your-metric-key-1"],
-        "Counter":[]
-    }
+        "namespace":"your-project",
+        "endpoint":"https://your-openshift.endpoint",
+	    "token":"your-service-account-token"
+    },
+    "colectors":
+    [
+        {
+            "name":"your-cronjob",
+            "maxWaitPerRecord": 10,
+            "contexts":[{
+                "regex_name":"your-metrics-logs-identification-1",
+                "Gauge":["your-metric-key-1"],
+                "Counter":[]
+            },
+            {
+                "regex_name":"your-metrics-logs-identification-2",
+                "Gauge":["your-metric-key-2"],
+                "Counter":[]
+            }]
+        }
+    ]
+}
+
 ```
 Logs must maintain a pattern to parse.
 
@@ -40,11 +61,18 @@ This setting will capture the following log line.
     [some date dd/mm/yyyy][some info] your-metrics-logs-identification-1 METRICS: {"your-metric-key-1":200}
 ```
 
-The json is removed from the line then the json parse attempt is made.
+The json is captured from the line then the json decode attempt is made.
 
-Then the existence of the Metric key inside the Object is verified, if key exist and value is instance of int or float, the metric is set.
 
-Follow output metrics in call http endpoint-> http://your-endpoint/your-metrics-logs-identification-1/METRICS
+The metric value will be set when json will contain the metric key and the value is an instance of int or float.
+
+
+
+Below is an example of the url and output from a request that passes the cronjob name to the server followed by /METRICS.
+
+```
+ http://your-endpoint/your-metrics-logs-identification-1/METRICS
+```
 
     # Python client for prometheus.io
     # http://github.com/Lispython/pyprometheus

@@ -1,6 +1,9 @@
 Openshift cronjob metrics exporter
 ============================================================
 
+Openshift-cronjob-metrics-exporter is an application that checks the health of cronjobs.  
+This application in addition to pulling openshift native metrics also captures metrics from the application log output.  
+When captured the metrics are displayed in the format of a prometheus exporter using a flask application.
 
 Features
 --------

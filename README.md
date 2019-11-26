@@ -42,7 +42,7 @@ This setting will capture the following log line.
 
 The json is removed from the line then the json parse attempt is made.
 
-Then the existence of the Metrica key inside the Object is verified, if key exist and value is instance of int or float, the metric is seted.
+Then the existence of the Metric key inside the Object is verified, if key exist and value is instance of int or float, the metric is seted.
 
 Follow output metrics in call http endpoint-> http://your-endpoint/your-metrics-logs-identification-1/METRICS
 

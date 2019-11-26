@@ -8,7 +8,7 @@ Features
 - Three default Gauge metrics (process_is_running,process_is_locked,process_last_exec_with_error)
 - 2 Metric types(Gauge,Counter)
 - Create and capture custom metrics by configuration.
-- Configure max waiting for capture new metric or process_last_exec_with_error is seted with "True"
+- Configure max waiting for capture new metric or process_is_locked is seted with "True"
 - Simple Configuration
 - The proccess is based is log watch
 - Export type prometheus

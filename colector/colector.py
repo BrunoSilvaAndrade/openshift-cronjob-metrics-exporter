@@ -37,7 +37,7 @@ class Colector(object):
 
     def abstractMetric(self,metricClass,metricName,dataMetrics):
         metricKey = metricClass.__name__
-        if metricName in dataMetrics and isinstance(dataMetrics[metricName],int):
+        if metricName in dataMetrics and (isinstance(dataMetrics[metricName],int) or isinstance(dataMetrics[metricName],float)):
             lastCapture = datetime.now().timestamp()
             if metricName not in self.metrics[metricKey]:
                 self.metrics[metricKey][metricName] = metricClass(metricName,"Metrics type {} of key {}".format(metricKey,metricName),registry=self.registry)

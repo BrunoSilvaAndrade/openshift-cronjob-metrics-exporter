@@ -1,1 +1,2 @@
-from .exitcode import _ExitCode
+class ExitCode:
+    OK,FAIL = range(2)

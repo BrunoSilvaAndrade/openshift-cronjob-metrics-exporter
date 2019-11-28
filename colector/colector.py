@@ -6,10 +6,10 @@ import re
 from .constats import *
 from .exceptions import *
 
-from utils.struct_validate import *
-from threading import Thread
 from time import sleep
+from threading import Thread
 from datetime import datetime
+from schema import Schema,And,Use,SchemaError
 
 from pyprometheus.registry import BaseRegistry
 from pyprometheus import LocalMemoryStorage
@@ -113,7 +113,7 @@ class Colector(object):
         while True:
             try:
                 pods = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_PODS.format(self.config["namespace"])),headers=self.HEADERS,verify=False).content)
-                validateStruct({"items":[{"metadata":{},"spec":{},"status":{}}]},pods)
+                Schema({"items":[{"metadata":dict,"spec":dict,"status":dict}]},ignore_extra_keys=True).validate(pods)
                 for pod in pods["items"]:
                     try:
                         if pod["metadata"]["labels"]["parent"] == CONTJOB_TEMPLATE.format(self.config["name"]) and pod["status"]["phase"] == "Running":
@@ -153,13 +153,13 @@ class Colector(object):
                             continue
 
                 pod = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(self.config["namespace"],pod["metadata"]["name"])),headers=self.HEADERS,verify=False).content)
-                validateStruct({"status":{"phase":str}},pod)
+                Schema({"status":{"phase":And(Use(str))}},ignore_extra_keys=True).validate(pod)
                 if pod["status"]["phase"] == "Running":
                     continue
                 
                 self.setLastStatus(pod["status"]["phase"] != "Succeeded")
                 
-            except (req.RequestException,json.JSONDecodeError,StructValidateException,NoPodsFoundedException) as e:
+            except (req.RequestException,json.JSONDecodeError,SchemaError,NoPodsFoundedException) as e:
                 logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {} {}".format(e.__class__.__name__,str(e)))
             
             self.unregisterMetrics()

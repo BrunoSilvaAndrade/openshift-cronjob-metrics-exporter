@@ -24,7 +24,7 @@ class Colector(object):
         self.metrics = {"Gauge":{},"Counter":{}}
         self.registry = BaseRegistry(storage=LocalMemoryStorage())
         self.status = {
-                "state":[0,Gauge("process_is_running","Process (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
+                "running":[0,Gauge("process_is_running","Process (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
                 "locked":[0,Gauge("process_is_locked","Process (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry)],
                 "lastStatus":[0,Gauge("process_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)]
                 }
@@ -57,29 +57,23 @@ class Colector(object):
             collector,value = self.abstractMetric(Counter,metricName,dataMetrics)
             if collector is not None:
                 collector.inc(value)
-    
-    def abstractSetStatus(self,statusName,status):
-        status = int(not not status)
-        self.status[statusName][0] = status
-        self.status[statusName][1].set(status)
 
     def abstractGetStatus(self,statusName):
         return not not self.status[statusName][0]
 
-    def setProccessState(self,running=False):
-        self.abstractSetStatus("state",running)
+    def setProccessState(self,**kw):
+        allwdStatus = ("running","locked","lastStatus")
+        for statusName in kw:
+            if statusName in allwdStatus:
+                kw[statusName] = int(not not kw[statusName])
+                self.status[statusName][0] = kw[statusName]
+                self.status[statusName][1].set(kw[statusName])
     
     def proccessIsRunning(self):
-        return self.abstractGetStatus("state")
-
-    def setProccessLocked(self,locked=False):
-        self.abstractSetStatus("locked",locked)
+        return self.abstractGetStatus("running")
 
     def proccessIsLocked(self):
         return self.abstractGetStatus("locked")
-
-    def setLastStatus(self,state):
-        self.abstractSetStatus("lastStatus",state)
 
     def getLastStatus(self):
         return self.abstractGetStatus("lastStatus")
@@ -88,19 +82,18 @@ class Colector(object):
         while True:
             sleep(self.config["maxWaitPerRecord"]/2)
             if self.proccessIsRunning():
-                self.setProccessLocked(locked=self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp())
+                self.setProccessState(locked=self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp())
                 continue
-            self.setProccessLocked(locked=False)
+            self.setProccessState(locked=False)
 
     def unregisterMetrics(self):
         self.registry = BaseRegistry(storage=LocalMemoryStorage())
-        self.status["state"][1].add_to_registry(self.registry)
+        self.status["running"][1].add_to_registry(self.registry)
         self.status["locked"][1].add_to_registry(self.registry)
         self.status["lastStatus"][1].add_to_registry(self.registry)
 
-        self.setProccessState(running=self.proccessIsRunning())
-        self.setProccessLocked(locked=self.proccessIsLocked())
-        self.setLastStatus(self.getLastStatus())
+        self.setProccessState(locked=self.proccessIsLocked())
+        self.setProccessState(lastStatus=self.getLastStatus())
 
         for metricKey in list(self.metrics):
             for collectorKey in list(self.metrics[metricKey]):
@@ -157,7 +150,7 @@ class Colector(object):
                 if pod["status"]["phase"] == "Running":
                     continue
                 
-                self.setLastStatus(pod["status"]["phase"] != "Succeeded")
+                self.setProccessState(lastStatus=pod["status"]["phase"] != "Succeeded")
                 
             except (req.RequestException,json.JSONDecodeError,SchemaError,NoPodsFoundedException) as e:
                 logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {} {}".format(e.__class__.__name__,str(e)))

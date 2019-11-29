@@ -7,7 +7,6 @@ from .exceptions import ConfigException,ConfigStructColectorsException
 class Config():
     CUR_DIR = path.dirname(path.realpath(__file__))
     DEFAULT_CONFIG_FILE = "{}/{}".format(CUR_DIR,"config.json")
-    EXAMPLE_CONFIG_SCHEMA = "FOLLOW CONFIG EXAMPLE SHCHEMA\n{}"
     
     def __init__(self):
         checkSchema = Schema({
@@ -47,7 +46,7 @@ class Config():
         except json.JSONDecodeError:
             raise ConfigException("{}".format("JSON INCORRECT SYNTAX IN CONFIG FILE"))
         except SchemaError as e:
-            raise ConfigException(self.EXAMPLE_CONFIG_SCHEMA.format(str(e)))
+            raise ConfigException(str(e))
 
     def __setattr__(self, name, value):
         pass

@@ -1,14 +1,11 @@
 import json
 
-from os import path
 from schema import Schema,And,Use,SchemaError
 from .exceptions import ConfigException,ConfigStructColectorsException
 
 class Config():
-    CUR_DIR = path.dirname(path.realpath(__file__))
-    DEFAULT_CONFIG_FILE = "{}/{}".format(CUR_DIR,"config.json")
     
-    def __init__(self):
+    def __init__(self,filePath):
         checkSchema = Schema({
                     "openshift":
                     {
@@ -33,16 +30,15 @@ class Config():
                     ]
                 })
 
-        with open(self.DEFAULT_CONFIG_FILE,"r") as f:
+        with open(filePath,"r") as f:
             file_buff = f.read()
             f.close()
 
         try:
             config = json.loads(file_buff)
             checkSchema.validate(config)
-            self.__dict__["openshift"] = config["openshift"]
-            self.__dict__["colectors"] = config["colectors"]
-
+            for key in config:
+                self.__dict__[key] = config[key]
         except json.JSONDecodeError:
             raise ConfigException("{}".format("JSON INCORRECT SYNTAX IN CONFIG FILE"))
         except SchemaError as e:

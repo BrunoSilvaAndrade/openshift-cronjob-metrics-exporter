@@ -8,13 +8,18 @@ from colector import Colector
 from flask import Flask,Response,abort
 from http import HTTPStatus
 
+from os import path
+
+CUR_DIR = path.dirname(path.realpath(__file__))
+DEFAULT_CONFIG_FILE = "{}/{}".format(CUR_DIR,"config.json")
+
 urllib3.disable_warnings()
 logging.getLogger(__name__)
 logging.basicConfig(format='[%(asctime)s][%(levelname)s][%(filename)s][%(funcName)s] * %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=20)
 app  = Flask(__name__)
 
 try:
-    config = Config()
+    config = Config(DEFAULT_CONFIG_FILE)
 except ConfigException as e:
     logging.error(str(e))
     exit(ExitCode.FAIL)

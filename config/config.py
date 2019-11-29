@@ -1,5 +1,6 @@
 import json
 
+from os import path
 from schema import Schema,And,Use,SchemaError
 from .exceptions import ConfigException,ConfigStructColectorsException
 
@@ -30,6 +31,9 @@ class Config():
                     ]
                 })
 
+        if not path.isfile(filePath):
+            raise ConfigException("NO SUCH CONFIGURATION FILE {}".format(filePath))
+        
         with open(filePath,"r") as f:
             file_buff = f.read()
             f.close()

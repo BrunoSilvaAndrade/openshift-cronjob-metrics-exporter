@@ -1,14 +1,14 @@
 import logging
 import urllib3
 
-from threading import Thread
+from os import path
 from utils import ExitCode
-from config import Config,ConfigException
+from http import HTTPStatus
+from threading import Thread
 from colector import Colector
 from flask import Flask,Response,abort
-from http import HTTPStatus
+from config import Config,ConfigException
 
-from os import path
 
 CUR_DIR = path.dirname(path.realpath(__file__))
 DEFAULT_CONFIG_FILE = "{}/{}".format(CUR_DIR,"config.json")

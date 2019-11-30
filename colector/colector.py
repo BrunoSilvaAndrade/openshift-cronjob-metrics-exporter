@@ -1,7 +1,7 @@
-import logging
-import json
-import requests as req
 import re
+import json
+import logging
+import requests as req
 
 from .constats import *
 from .exceptions import *
@@ -11,10 +11,10 @@ from threading import Thread
 from datetime import datetime
 from schema import Schema,And,Use,SchemaError
 
-from pyprometheus.registry import BaseRegistry
-from pyprometheus import LocalMemoryStorage
-from pyprometheus.utils.exposition import registry_to_text
 from pyprometheus import Gauge,Counter
+from pyprometheus import LocalMemoryStorage
+from pyprometheus.registry import BaseRegistry
+from pyprometheus.utils.exposition import registry_to_text
 
 class Colector(object):
 

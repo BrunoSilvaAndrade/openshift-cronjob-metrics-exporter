@@ -62,12 +62,14 @@ class Colector(object):
         return not not self.status[statusName][0]
 
     def setProccessState(self,**kw):
-        allwdStatus = ("running","locked","lastStatus")
+        allwdKws = {"running","locked","lastStatus"}
+        if not set(kw).issubset(allwdKws):
+            diff = allwdKws.difference(kw)
+            raise TypeError("Unknown keyword arguments %r" % list(diff))
         for statusName in kw:
-            if statusName in allwdStatus:
-                kw[statusName] = int(not not kw[statusName])
-                self.status[statusName][0] = kw[statusName]
-                self.status[statusName][1].set(kw[statusName])
+            kw[statusName] = int(not not kw[statusName])
+            self.status[statusName][0] = kw[statusName]
+            self.status[statusName][1].set(kw[statusName])
     
     def proccessIsRunning(self):
         return self.abstractGetStatus("running")

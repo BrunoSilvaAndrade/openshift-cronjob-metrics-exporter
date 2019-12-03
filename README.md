@@ -8,7 +8,7 @@ When captured the metrics are displayed in the format of a prometheus exporter u
 Features
 --------
 
-- Three default pod status in Gauge metric (process_is_running,process_is_locked,process_last_exec_with_error).
+- Three default pod status in Gauge metric (process_is_running, process_is_locked, process_last_exec_with_error, time_the_process_is_running).
 - Two types of Metric (Gauge,Counter).
 - Create and capturing custom metrics by configuration.
 - Configuring max wait,the proccess will wait for new metrics of log otherwise process_is_locked will be set to "True".
@@ -16,6 +16,7 @@ Features
 - The proccess is based in log watch.
 - The form of export follows the prometheus format.
 - Multiple colectors and contexts.
+- Runtime Capture
 
 
 

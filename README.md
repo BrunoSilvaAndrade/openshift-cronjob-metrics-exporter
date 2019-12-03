@@ -88,6 +88,9 @@ Below is an example of the url and output from a request that passes the cronjob
     # HELP process_is_locked Process (locked/unlocked) status.If 0 not locked, if 1 locked
     # TYPE process_is_locked gauge
     process_is_locked{} 0.0 1574779180434
+    # HELP time_the_process_is_running time the process is running in ms
+    # TYPE time_the_process_is_running gauge
+    time_the_process_is_running{} 75.0 1575409184386
     # HELP process_last_exec_with_error If 0 Last execution was successful, if 1 Last exection terminate wiht Error
     # TYPE process_last_exec_with_error gauge
     process_last_exec_with_error 0.0 1574779180434

@@ -25,6 +25,7 @@ class Colector(object):
         self.registry = BaseRegistry(storage=LocalMemoryStorage())
         self.status = {
                 "running":[0,Gauge("process_is_running","Process (running/not running) status.If 0 not running, if 1 running",registry=self.registry)],
+                "timeRunning":[0,Gauge("time_the_process_is_running","time the process is running in ms",registry=self.registry)],
                 "locked":[0,Gauge("process_is_locked","Process (locked/unlocked) status.If 0 not locked, if 1 locked",registry=self.registry)],
                 "lastStatus":[0,Gauge("process_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)]
                 }
@@ -62,12 +63,11 @@ class Colector(object):
         return not not self.status[statusName][0]
 
     def setProccessState(self,**kw):
-        allwdKws = {"running","locked","lastStatus"}
-        if not set(kw).issubset(allwdKws):
-            diff = allwdKws.difference(kw)
+        if not set(kw).issubset(self.status):
+            diff = self.status.difference(kw)
             raise TypeError("Unknown keyword arguments %r" % list(diff))
         for statusName in kw:
-            kw[statusName] = int(not not kw[statusName])
+            kw[statusName] = int(kw[statusName])
             self.status[statusName][0] = kw[statusName]
             self.status[statusName][1].set(kw[statusName])
     
@@ -85,6 +85,9 @@ class Colector(object):
             sleep(self.config["maxWaitPerRecord"]/2)
             if self.proccessIsRunning():
                 self.setProccessState(locked=self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp())
+                self.setProccessState(
+                    timeRunning=datetime.now().timestamp()-datetime.strptime(self.curPod["status"]["containerStatuses"][0]["state"]["running"]["startedAt"],POD_FORMAT_STRPTIME).timestamp()
+                )
                 continue
             self.setProccessState(locked=False)
 
@@ -109,14 +112,14 @@ class Colector(object):
             try:
                 pods = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_PODS.format(self.config["namespace"])),headers=self.HEADERS,verify=False).content)
                 Schema({"items":[{"metadata":dict,"spec":dict,"status":dict}]},ignore_extra_keys=True).validate(pods)
-                for pod in pods["items"]:
+                for self.curPod in pods["items"]:
                     try:
-                        if pod["metadata"]["labels"]["parent"] == CONTJOB_TEMPLATE.format(self.config["name"]) and pod["status"]["phase"] == "Running":
+                        if self.curPod["metadata"]["labels"]["parent"] == CONTJOB_TEMPLATE.format(self.config["name"]) and self.curPod["status"]["phase"] == "Running":
                             break
-                        pod = None
+                        self.curPod = None
                     except KeyError:
-                        pod = None
-                if pod is None:
+                        self.curPod = None
+                if self.curPod is None:
                     logging.info("WAITING FOR POD FROM CRONJOB {}".format(self.config["name"]))
                     raise NoPodsFoundedException()
                 pods = None
@@ -128,7 +131,7 @@ class Colector(object):
                 logs = req.get("{}/{}/{}".format(
                                     self.config["endpoint"],
                                     API_PREFIX_GET_PODS.format(self.config["namespace"]),
-                                    API_POSTFIX_GET_LOGS.format(pod["metadata"]["name"])),
+                                    API_POSTFIX_GET_LOGS.format(self.curPod["metadata"]["name"])),
                                     headers=self.HEADERS,verify=False,stream=True)
 
                 logging.info("RECEIVING LOG LINES FROM POD FROM CRONJOB {}".format(self.config["name"]))
@@ -147,12 +150,12 @@ class Colector(object):
                         except (json.JSONDecodeError):
                             continue
 
-                pod = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(self.config["namespace"],pod["metadata"]["name"])),headers=self.HEADERS,verify=False).content)
-                Schema({"status":{"phase":And(Use(str))}},ignore_extra_keys=True).validate(pod)
-                if pod["status"]["phase"] == "Running":
+                self.curPod = json.loads(req.get("{}/{}".format(self.config["endpoint"],API_PREFIX_GET_ESPECIFIED_POD.format(self.config["namespace"],self.curPod["metadata"]["name"])),headers=self.HEADERS,verify=False).content)
+                Schema({"status":{"phase":And(Use(str))}},ignore_extra_keys=True).validate(self.curPod)
+                if self.curPod["status"]["phase"] == "Running":
                     continue
                 
-                self.setProccessState(lastStatus=pod["status"]["phase"] != "Succeeded")
+                self.setProccessState(lastStatus=self.curPod["status"]["phase"] != "Succeeded")
                 
             except (req.RequestException,json.JSONDecodeError,SchemaError,NoPodsFoundedException) as e:
                 logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {} {}".format(e.__class__.__name__,str(e)))

@@ -1,6 +1,8 @@
 FROM python:3.6
-ENV TZ=America/Sao_Paulo
-RUN echo ${TZ} > /etc/timezone
+#RECEIVE TIMEZONE PER PARAM OR SET DEFAULT VALUE
+ARG timezoneName=Europe/Belfast
+RUN rm -f /etc/localtime
+RUN ln -s /usr/share/zoneinfo/${timezoneName} /etc/localtime
 RUN mkdir -p /app
 WORKDIR /app
 COPY . ./

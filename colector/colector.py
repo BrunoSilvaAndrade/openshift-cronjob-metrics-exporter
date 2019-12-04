@@ -96,6 +96,7 @@ class Colector(object):
         self.status["running"][1].add_to_registry(self.registry)
         self.status["locked"][1].add_to_registry(self.registry)
         self.status["lastStatus"][1].add_to_registry(self.registry)
+        self.status["timeRunning"][1].add_to_registry(self.registry)
 
         self.setProccessState(locked=self.proccessIsLocked())
         self.setProccessState(lastStatus=self.getLastStatus())

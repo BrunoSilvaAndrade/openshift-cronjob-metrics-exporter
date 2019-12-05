@@ -82,7 +82,7 @@ class Colector(object):
 
     def monitorProccessLock(self):
         while True:
-            sleep(self.config["maxWaitPerRecord"]/2)
+            sleep(TIME_BETWEEN_ITERS_MONITOR_LOCK)
             if self.proccessIsRunning():
                 self.setProccessState(locked=self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp())
                 self.setProccessState(

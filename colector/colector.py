@@ -128,6 +128,7 @@ class Colector(object):
 
                 logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
 
+                self.lastCapture = datetime.now()
                 self.setProccessState(running=True)
 
                 logs = req.get("{}/{}/{}".format(

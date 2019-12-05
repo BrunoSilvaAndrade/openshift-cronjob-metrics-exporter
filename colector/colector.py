@@ -104,7 +104,10 @@ class Colector(object):
 
         for metricKey in list(self.metrics):
             for collectorKey in list(self.metrics[metricKey]):
-                self.metrics[metricKey].pop(collectorKey)
+                self.metrics[metricKey][collectorKey].add_to_registry(self.registry)
+                if isinstance(self.metrics[metricKey][collectorKey],Gauge):
+                    self.metrics[metricKey][collectorKey].set(0)
+
 
 
     def collect(self):

@@ -8,7 +8,7 @@ from .exceptions import *
 
 from time import sleep
 from threading import Thread
-from datetime import datetime
+from datetime import datetime,timedelta
 from schema import Schema,And,Use,SchemaError
 
 from pyprometheus import Gauge,Counter
@@ -30,7 +30,7 @@ class Colector(object):
                 "lastStatus":[0,Gauge("process_last_exec_with_error","If 0 Last execution was successful, if 1 Last exection terminate wiht Error",registry=self.registry)]
                 }
 
-        self.lastCapture = datetime.now().timestamp()
+        self.lastCapture = datetime.now()
 
         self.HEADERS = {"Accept": "application/json","Authorization":"Bearer {}".format(self.config["token"])}
 
@@ -39,7 +39,7 @@ class Colector(object):
     def abstractMetric(self,metricClass,metricName,dataMetrics):
         metricKey = metricClass.__name__
         if metricName in dataMetrics and (isinstance(dataMetrics[metricName],int) or isinstance(dataMetrics[metricName],float)):
-            lastCapture = datetime.now().timestamp()
+            lastCapture = datetime.now()
             if metricName not in self.metrics[metricKey]:
                 self.metrics[metricKey][metricName] = metricClass(metricName,"Metrics type {} of key {}".format(metricKey,metricName),registry=self.registry)
             self.lastCapture = lastCapture
@@ -84,7 +84,8 @@ class Colector(object):
         while True:
             sleep(TIME_BETWEEN_ITERS_MONITOR_LOCK)
             if self.proccessIsRunning():
-                self.setProccessState(locked=self.lastCapture+self.config["maxWaitPerRecord"]<=datetime.now().timestamp())
+                maxWait = self.lastCapture+timedelta(seconds=self.config["maxWaitPerRecord"])
+                self.setProccessState(locked=maxWait.timestamp()<datetime.now().timestamp())
                 self.setProccessState(
                     timeRunning=datetime.now().timestamp()-datetime.strptime(self.curPod["status"]["containerStatuses"][0]["state"]["running"]["startedAt"],POD_FORMAT_STRPTIME).timestamp()
                 )
@@ -127,6 +128,7 @@ class Colector(object):
 
                 logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
 
+                self.lastCapture = datetime.now()
                 self.setProccessState(running=True)
 
                 logs = req.get("{}/{}/{}".format(

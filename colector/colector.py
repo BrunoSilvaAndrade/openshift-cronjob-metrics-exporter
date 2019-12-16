@@ -126,10 +126,10 @@ class Colector(object):
                         self.curPod = None
                 if self.curPod is None:
                     logging.info("WAITING FOR POD FROM CRONJOB {}".format(self.config["name"]))
-                    raise NoPodsFoundedException()
+                    raise NoPodsFoundException()
                 pods = None
 
-                logging.info("POD FROM CRONJOB {} FOUNDED".format(self.config["name"]))
+                logging.info("POD FROM CRONJOB {} FOUND".format(self.config["name"]))
 
                 self.lastCapture = datetime.now()
                 self.setProccessState(running=True)
@@ -163,7 +163,7 @@ class Colector(object):
                 
                 self.setProccessState(lastStatus=self.curPod["status"]["phase"] != "Succeeded")
                 
-            except (req.RequestException,json.JSONDecodeError,SchemaError,NoPodsFoundedException) as e:
+            except (req.RequestException,json.JSONDecodeError,SchemaError,NoPodsFoundException) as e:
                 logging.warn("EXCEPTION INTO BASE PROCCESS FLUX -> {} {}".format(e.__class__.__name__,str(e)))
             
             self.unregisterMetrics()

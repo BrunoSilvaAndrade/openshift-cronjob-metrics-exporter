@@ -5,7 +5,7 @@ contextlib2==0.5.5
 Flask==1.1.1
 idna==2.8
 itsdangerous==1.1.0
-Jinja2==2.10.3
+Jinja2==2.11.3
 MarkupSafe==1.1.1
 pyprometheus==0.0.9
 requests==2.22.0

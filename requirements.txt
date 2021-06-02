@@ -10,5 +10,5 @@ MarkupSafe==1.1.1
 pyprometheus==0.0.9
 requests==2.22.0
 schema==0.7.1
-urllib3==1.25.6
+urllib3==1.26.5
 Werkzeug==0.16.0
